@@ -1636,18 +1636,38 @@ function updateOnlineStatus(){
 /* ============================================================
    UPDATE AVAILABLE HANDLER
    ============================================================ */
+let updateToastTimer = null;
+let updateToastDismissed = false;
+
 function showUpdateToast(){
+  // Don't nag if already dismissed this session
+  if(updateToastDismissed) return;
+
   const existing = document.getElementById('updateToast');
   if(existing) return;
 
   const el = document.createElement('div');
   el.className = 'update-toast';
   el.id = 'updateToast';
-  el.innerHTML = '<span>✨ New version available</span><button id="updateRefreshBtn">Refresh</button>';
+  el.innerHTML = `
+    <span>✨ New version available</span>
+    <button class="update-refresh" id="updateRefreshBtn">Refresh</button>
+    <button class="update-dismiss" id="updateDismissBtn" aria-label="Dismiss">✕</button>
+  `;
   document.body.appendChild(el);
 
   requestAnimationFrame(() => el.classList.add('show'));
 
+  function hideToast(){
+    el.classList.remove('show');
+    clearTimeout(updateToastTimer);
+    setTimeout(() => el.remove(), 300);
+  }
+
+  // Auto-hide after 15 seconds
+  updateToastTimer = setTimeout(hideToast, 15000);
+
+  // Refresh button
   document.getElementById('updateRefreshBtn').onclick = async () => {
     try{
       const reg = await navigator.serviceWorker.getRegistration();
@@ -1655,8 +1675,13 @@ function showUpdateToast(){
         reg.waiting.postMessage({type:'SKIP_WAITING'});
       }
     }catch(e){}
-    // Give the SW a moment to activate, then reload
     setTimeout(() => window.location.reload(), 200);
+  };
+
+  // Dismiss button — remembers for this session so it doesn't keep popping back
+  document.getElementById('updateDismissBtn').onclick = () => {
+    updateToastDismissed = true;
+    hideToast();
   };
 }
 

@@ -1612,6 +1612,96 @@ function boot(){
   }, 200);
 }
 
+/* ============================================================
+   OFFLINE / ONLINE HANDLING
+   ============================================================ */
+function createOfflineBanner(){
+  if(document.getElementById('offlineBanner')) return;
+  const el = document.createElement('div');
+  el.className = 'offline-banner';
+  el.id = 'offlineBanner';
+  el.innerHTML = '<i class="fas fa-plane-slash"></i> You\'re offline — changes save locally and sync when you\'re back';
+  document.body.appendChild(el);
+}
+
+function updateOnlineStatus(){
+  const online = navigator.onLine;
+  const banner = document.getElementById('offlineBanner');
+  if(banner){
+    banner.classList.toggle('show', !online);
+  }
+  document.body.classList.toggle('offline', !online);
+}
+
+/* ============================================================
+   UPDATE AVAILABLE HANDLER
+   ============================================================ */
+function showUpdateToast(){
+  const existing = document.getElementById('updateToast');
+  if(existing) return;
+
+  const el = document.createElement('div');
+  el.className = 'update-toast';
+  el.id = 'updateToast';
+  el.innerHTML = '<span>✨ New version available</span><button id="updateRefreshBtn">Refresh</button>';
+  document.body.appendChild(el);
+
+  requestAnimationFrame(() => el.classList.add('show'));
+
+  document.getElementById('updateRefreshBtn').onclick = async () => {
+    try{
+      const reg = await navigator.serviceWorker.getRegistration();
+      if(reg && reg.waiting){
+        reg.waiting.postMessage({type:'SKIP_WAITING'});
+      }
+    }catch(e){}
+    // Give the SW a moment to activate, then reload
+    setTimeout(() => window.location.reload(), 200);
+  };
+}
+
+// Listen for the custom event fired by the registration script in index.html
+window.addEventListener('sw-update-available', showUpdateToast);
+
+// Also react to SW telling us directly
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if(event.data && event.data.type === 'UPDATE_AVAILABLE'){
+      showUpdateToast();
+    }
+  });
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function boot(){
+  createOfflineBanner();
+  updateOnlineStatus();
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+
+  // Detect view-only mode via URL param ?view=1
+  const params = new URLSearchParams(window.location.search);
+  const viewOnly = params.get('view') === '1' || params.get('readonly') === '1';
+
+  loadState();
+  applyTheme();
+  bindEvents();
+  switchTab('budget');
+
+  if(viewOnly) enableViewOnly();
+
+  render();
+  initDrive();
+
+  setTimeout(() => {
+    const ls = document.getElementById('loadingScreen');
+    ls.classList.add('hidden');
+    setTimeout(() => ls.remove(), 400);
+  }, 200);
+}
+
 // Kick off when DOM is ready
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', boot);

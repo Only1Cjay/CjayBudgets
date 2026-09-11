@@ -941,7 +941,7 @@ body[data-tab="savings"] .brand-logo{
   transform:translateX(-50%) translateY(0);
   pointer-events:auto;
 }
-.update-toast button{
+.update-toast button.update-refresh{
   background:var(--accent);
   color:#fff;
   border:none;
@@ -953,7 +953,21 @@ body[data-tab="savings"] .brand-logo{
   letter-spacing:.03em;
   cursor:pointer;
 }
-.update-toast button:hover{opacity:.9}
+.update-toast button.update-refresh:hover{opacity:.9}
+
+.update-toast button.update-dismiss{
+  background:transparent;
+  color:var(--bg);
+  opacity:.6;
+  border:none;
+  font-size:1rem;
+  line-height:1;
+  padding:2px 4px;
+  cursor:pointer;
+  margin-left:-6px;
+  transition:opacity .15s;
+}
+.update-toast button.update-dismiss:hover{opacity:1}
 
 /* Push offline banner down when app is scrolled? No — keep at top fixed */
 body.offline{padding-top:42px}

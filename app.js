@@ -250,8 +250,8 @@ function filteredSavings(){
    RENDER — BUDGET
    ============================================================ */
 function renderBudget(){
-  document.getElementById('periodLabel').innerHTML =
-    esc(periodLabelText()) + ' <i class="fas fa-chevron-down"></i>';
+   document.getElementById('periodLabel').innerHTML =
+    esc(periodLabelText().toUpperCase()) + ' <i class="fas fa-chevron-down"></i>';
 
   const period = entriesInPeriod();
   const income  = period.filter(e=>e.type==='Income').reduce((s,e)=>s+(Number(e.amount)||0),0);
@@ -261,6 +261,19 @@ function renderBudget(){
   document.getElementById('sumIncome').textContent  = fmtNaira(income);
   document.getElementById('sumExpense').textContent = fmtNaira(expense);
   document.getElementById('sumNet').textContent     = fmtNaira(net);
+
+  // Subtitle labels depend on view period
+  const periodWord = ui.viewPeriod === 'month' ? 'this month'
+    : ui.viewPeriod === 'week' ? 'this week' : 'today';
+  document.getElementById('subIncome').textContent  = periodWord;
+  document.getElementById('subExpense').textContent = periodWord;
+  const subNet = document.getElementById('subNet');
+  if(net > 0) subNet.textContent = 'surplus';
+  else if(net < 0) subNet.textContent = 'deficit';
+  else subNet.textContent = 'balanced';
+
+  // Net card color flips to red if negative
+  document.getElementById('sumNetCard').classList.toggle('negative', net < 0);
 
   renderSpend(period);
   renderEntryList();
@@ -1061,18 +1074,18 @@ function openSettingsModal(){
       <button type="button" class="btn btn-secondary" id="saveClientBtn" style="margin-top:0">Save Client ID</button>
     </div>
 
-    <!-- Theme -->
+       <!-- Theme -->
     <div class="settings-block">
       <h4>Savings theme</h4>
-      <div class="blk-sub">Emerald is default. Plum is a hidden surprise.</div>
+      <div class="blk-sub">Terracotta is default. Teal+Peach is a hidden surprise.</div>
       <div class="theme-picker">
         <button type="button" class="${!settings.plum?'active':''}" data-theme-pick="emerald">
           <span class="swatch emerald"></span>
-          Emerald
+          Terracotta
         </button>
         <button type="button" class="${settings.plum?'active':''}" data-theme-pick="plum">
           <span class="swatch plum"></span>
-          Plum
+          Teal+Peach
         </button>
       </div>
     </div>

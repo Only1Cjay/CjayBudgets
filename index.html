@@ -94,24 +94,24 @@
       </button>
     </div>
 
-    <!-- Summary hero -->
-    <div class="summary-hero">
-      <div class="hero-row">
-        <div class="hero-item">
-          <div class="hero-label">Income</div>
-          <div class="hero-val income num" id="sumIncome">₦0</div>
-        </div>
-        <div class="hero-item">
-          <div class="hero-label">Expenses</div>
-          <div class="hero-val expense num" id="sumExpense">₦0</div>
-        </div>
-        <div class="hero-item">
-          <div class="hero-label">Net</div>
-          <div class="hero-val num" id="sumNet">₦0</div>
-        </div>
+       <!-- Summary mini-cards -->
+    <div class="summary-grid">
+      <div class="summary-card income">
+        <div class="sc-label">Income</div>
+        <div class="sc-val num" id="sumIncome">₦0</div>
+        <div class="sc-sub" id="subIncome">this period</div>
+      </div>
+      <div class="summary-card expense">
+        <div class="sc-label">Expenses</div>
+        <div class="sc-val num" id="sumExpense">₦0</div>
+        <div class="sc-sub" id="subExpense">this period</div>
+      </div>
+      <div class="summary-card net" id="sumNetCard">
+        <div class="sc-label">Net</div>
+        <div class="sc-val num" id="sumNet">₦0</div>
+        <div class="sc-sub" id="subNet">—</div>
       </div>
     </div>
-
     <!-- Spending by category -->
     <div class="card spend-card">
       <h3>Spending by Category</h3>

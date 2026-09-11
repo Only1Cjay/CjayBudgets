@@ -889,3 +889,71 @@ body[data-tab="savings"] .brand-logo{
   .entry-row .er-amt{font-size:.88rem}
   .ledger-row .lr-amt{font-size:.88rem}
 }
+
+/* ============================================================
+   OFFLINE BANNER + UPDATE TOAST
+   ============================================================ */
+.offline-banner{
+  position:fixed;
+  top:0;left:0;right:0;
+  background:#d3453f;
+  color:#fff;
+  padding:10px 16px;
+  font-size:.8rem;
+  font-weight:600;
+  text-align:center;
+  z-index:5000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  transform:translateY(-100%);
+  transition:transform .3s ease;
+  box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+.offline-banner.show{transform:translateY(0)}
+.offline-banner i{font-size:.85rem}
+
+.update-toast{
+  position:fixed;
+  bottom:100px;
+  left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--text);
+  color:var(--bg);
+  padding:12px 18px;
+  border-radius:999px;
+  font-size:.82rem;
+  font-weight:600;
+  box-shadow:var(--shadow-lg);
+  opacity:0;
+  pointer-events:none;
+  transition:.25s;
+  z-index:3001;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  max-width:calc(100vw - 40px);
+  white-space:nowrap;
+}
+.update-toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+  pointer-events:auto;
+}
+.update-toast button{
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  padding:6px 14px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:.78rem;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  cursor:pointer;
+}
+.update-toast button:hover{opacity:.9}
+
+/* Push offline banner down when app is scrolled? No — keep at top fixed */
+body.offline{padding-top:42px}

@@ -738,10 +738,10 @@ body[data-tab="savings"] .brand-logo{
 }
 .theme-picker button.active{border-color:var(--accent);color:var(--accent)}
 .theme-picker button .swatch.emerald{
-  background:linear-gradient(135deg,var(--emerald) 50%,var(--cream-deep) 50%);
+  background:linear-gradient(135deg,#c96f4a 50%,#f5e6d3 50%);
 }
 .theme-picker button .swatch.plum{
-  background:linear-gradient(135deg,#5b2c6f 50%,#f5e6d5 50%);
+  background:linear-gradient(135deg,#3d7a85 50%,#ffd9b3 50%);
 }
 
 /* Danger zone */

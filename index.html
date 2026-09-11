@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CjayBudgets</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body data-theme="light" data-tab="budget">
+
+<!-- ============================================================
+     LOADING SCREEN
+     ============================================================ -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Loading…</div>
+</div>
+
+<!-- ============================================================
+     PRINT VIEW (only visible when printing)
+     ============================================================ -->
+<div class="print-view" id="printView"></div>
+
+<!-- ============================================================
+     APP
+     ============================================================ -->
+<div class="app">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-logo" id="brandLogo">
+        <i class="fas fa-wallet"></i>
+      </div>
+      <div>
+        <div class="brand-name">
+          CjayBudgets
+          <small>Personal Finance Tracker</small>
+        </div>
+        <div class="view-badge hidden" id="viewBadge">
+          <i class="fas fa-eye"></i> View Only
+        </div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="searchBtn" title="Search">
+        <i class="fas fa-search"></i>
+      </button>
+      <button class="icon-btn" id="themeBtn" title="Toggle theme">
+        <i class="fas fa-moon"></i>
+      </button>
+      <button class="icon-btn" id="settingsBtn" title="Settings">
+        <i class="fas fa-cog"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab toggle -->
+  <div class="tab-toggle">
+    <button class="tab-btn active" data-tab="budget">
+      <i class="fas fa-money-bill-wave"></i> Budget
+    </button>
+    <button class="tab-btn" data-tab="savings">
+      <i class="fas fa-piggy-bank"></i> Savings
+    </button>
+  </div>
+
+  <!-- ==========================================================
+       TAB 1 — BUDGET
+       ========================================================== -->
+  <div class="tab-content active" id="budgetTab">
+
+    <!-- Period navigation -->
+    <div class="period-nav">
+      <button class="nav-btn" id="prevPeriod" title="Previous">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <button class="period-label" id="periodLabel">
+        September 2026
+        <i class="fas fa-chevron-down"></i>
+      </button>
+      <button class="nav-btn" id="nextPeriod" title="Next">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <!-- Recurring link -->
+    <div style="display:flex;justify-content:flex-end;padding:0 4px 4px">
+      <button class="recur-link" id="recurringBtn">
+        <i class="fas fa-sync-alt"></i> Recurring
+      </button>
+    </div>
+
+    <!-- Summary hero -->
+    <div class="summary-hero">
+      <div class="hero-row">
+        <div class="hero-item">
+          <div class="hero-label">Income</div>
+          <div class="hero-val income num" id="sumIncome">₦0</div>
+        </div>
+        <div class="hero-item">
+          <div class="hero-label">Expenses</div>
+          <div class="hero-val expense num" id="sumExpense">₦0</div>
+        </div>
+        <div class="hero-item">
+          <div class="hero-label">Net</div>
+          <div class="hero-val num" id="sumNet">₦0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spending by category -->
+    <div class="card spend-card">
+      <h3>Spending by Category</h3>
+      <div id="spendContent">
+        <!-- Donut + bars injected here -->
+      </div>
+    </div>
+
+    <!-- Entries -->
+    <div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:4px 4px 8px">
+        <h3 style="font-size:.78rem;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.06em;margin:0">
+          Recent Entries
+        </h3>
+      </div>
+      <div class="entry-list" id="entryList"></div>
+      <div class="empty-state hidden" id="entriesEmpty">
+        <svg viewBox="0 0 120 120" fill="none">
+          <rect x="20" y="30" width="80" height="60" rx="10" stroke="currentColor" stroke-width="2.5" opacity=".4"/>
+          <path d="M30 52h30M30 66h50M30 80h20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>
+          <circle cx="88" cy="46" r="10" stroke="currentColor" stroke-width="2.5" opacity=".5"/>
+          <path d="M88 42v5l3 2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity=".5"/>
+        </svg>
+        <div class="es-title">No entries yet</div>
+        <div class="es-sub">Tap the + button to log your first income or expense.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==========================================================
+       TAB 2 — SAVINGS
+       ========================================================== -->
+  <div class="tab-content" id="savingsTab">
+
+    <!-- Hero -->
+    <div class="savings-hero">
+      <div class="sh-label">Total Saved</div>
+      <div class="sh-value num" id="savingsTotal">₦0</div>
+      <div class="sh-sub" id="savingsSub">— no activity yet</div>
+    </div>
+
+    <!-- Actions -->
+    <div class="savings-actions">
+      <button class="btn-action btn-deposit" id="depositBtn">
+        <i class="fas fa-plus"></i> Add Deposit
+      </button>
+      <button class="btn-action btn-withdraw" id="withdrawBtn">
+        <i class="fas fa-minus"></i> Withdraw
+      </button>
+    </div>
+
+    <!-- Ledger -->
+    <div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:4px 4px 8px">
+        <h3 style="font-size:.78rem;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.06em;margin:0">
+          Ledger
+        </h3>
+      </div>
+      <div class="ledger-list" id="ledgerList"></div>
+      <div class="empty-state hidden" id="ledgerEmpty">
+        <svg viewBox="0 0 120 120" fill="none">
+          <path d="M30 40h60v50a8 8 0 0 1-8 8H38a8 8 0 0 1-8-8V40z" stroke="currentColor" stroke-width="2.5" opacity=".4"/>
+          <path d="M30 40c0-5 4-9 9-9h42c5 0 9 4 9 9" stroke="currentColor" stroke-width="2.5" opacity=".55"/>
+          <path d="M50 60h20M50 74h20M50 88h12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>
+        </svg>
+        <div class="es-title">No savings yet</div>
+        <div class="es-sub">Tap "Add Deposit" to record your first savings entry.</div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /.app -->
+
+<!-- ============================================================
+     FAB
+     ============================================================ -->
+<button class="fab" id="fabBtn" title="Add Entry">
+  <i class="fas fa-plus"></i>
+</button>
+
+<!-- ============================================================
+     MODAL OVERLAY
+     ============================================================ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<!-- ============================================================
+     TOAST
+     ============================================================ -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js" defer></script>
+</body>
+</html>

@@ -69,9 +69,12 @@
         </div>
       </div>
     </div>
-    <div class="top-actions">
+       <div class="top-actions">
       <button class="icon-btn" id="searchBtn" title="Search">
         <i class="fas fa-search"></i>
+      </button>
+      <button class="icon-btn" id="budgetBtn" title="Monthly budget">
+        <i class="fas fa-file-lines"></i>
       </button>
       <button class="icon-btn" id="themeBtn" title="Toggle theme">
         <i class="fas fa-moon"></i>
@@ -130,11 +133,14 @@
         <div class="sc-sub" id="subNet">—</div>
       </div>
     </div>
-           <!-- Monthly budget tracker (hidden unless enabled) -->
+      <!-- Monthly budget tracker (hidden unless enabled) -->
     <div class="card budget-tracker-card hidden" id="budgetTrackerCard">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <h3 style="margin:0">Monthly Budget</h3>
-        <button class="icon-btn" id="budgetEditBtn" title="Edit budget" style="width:32px;height:32px;border-radius:10px;font-size:.85rem">
+      <div class="budget-tracker-header">
+        <button type="button" class="budget-tracker-toggle" id="budgetCollapseBtn" aria-expanded="true">
+          <h3 style="margin:0">Monthly Budget</h3>
+          <i class="fas fa-chevron-down budget-chevron"></i>
+        </button>
+        <button class="icon-btn" id="budgetEditBtn" title="Edit budget" style="width:32px;height:32px;border-radius:10px;font-size:.85rem;flex-shrink:0">
           <i class="fas fa-cog"></i>
         </button>
       </div>

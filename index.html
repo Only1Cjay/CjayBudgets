@@ -1,10 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en" data-theme="light">
+     <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>CjayBudgets</title>
 <meta name="theme-color" content="#2e7dd1">
+   <!-- Inline theme loader — prevents flash of wrong theme on load -->
+<script>
+  (function(){
+    try{
+      var t = localStorage.getItem('cjay_budgets_theme');
+      if(t !== 'dark' && t !== 'light') t = 'light';
+      document.addEventListener('DOMContentLoaded', function(){
+        document.body.setAttribute('data-theme', t);
+      });
+      // Fallback in case DOMContentLoaded already fired
+      if(document.body){
+        document.body.setAttribute('data-theme', t);
+      }
+    }catch(e){}
+  })();
+</script>
 <meta name="description" content="Personal finance tracker — budget entries and savings ledger.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMyZTdkZDEiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlMGE1MjYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMCIgZmlsbD0idXJsKCNnKSIvPjxwYXRoIGQ9Ik0xMjAgMTkwaDI3MnYyMDBhMjAgMjAgMCAwMS0yMCAyMEgxNDBhMjAgMjAgMCAwMS0yMC0yMFYxOTB6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMTQwIDE5MHYtMzBhMzAgMzAgMCAwMTMwLTMwaDE3MmEzMCAzMCAwIDAxMzAgMzB2MzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyOCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjM2MCIgY3k9IjI5MCIgcj0iMjIiIGZpbGw9IiNmZmYiLz48L3N2Zz4=">
@@ -102,6 +118,7 @@
         <div class="sc-val num" id="sumIncome">₦0</div>
         <div class="sc-sub" id="subIncome">this period</div>
       </div>
+         
       <div class="summary-card expense">
         <div class="sc-label">Expenses</div>
         <div class="sc-val num" id="sumExpense">₦0</div>
@@ -112,6 +129,16 @@
         <div class="sc-val num" id="sumNet">₦0</div>
         <div class="sc-sub" id="subNet">—</div>
       </div>
+    </div>
+           <!-- Monthly budget tracker (hidden unless enabled) -->
+    <div class="card budget-tracker-card hidden" id="budgetTrackerCard">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="margin:0">Monthly Budget</h3>
+        <button class="icon-btn" id="budgetEditBtn" title="Edit budget" style="width:32px;height:32px;border-radius:10px;font-size:.85rem">
+          <i class="fas fa-cog"></i>
+        </button>
+      </div>
+      <div id="budgetTrackerContent"></div>
     </div>
     <!-- Spending by category -->
     <div class="card spend-card">

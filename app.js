@@ -293,10 +293,9 @@ function renderBudget(){
   // Net card color flips to red if negative
   document.getElementById('sumNetCard').classList.toggle('negative', net < 0);
 
-  renderSpend(period);
+    renderSpend(period);
   renderEntryList();
-();
-
+  renderBudgetTracker();
 }
 
 function renderSpend(period){

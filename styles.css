@@ -1099,3 +1099,308 @@ body[data-tab="savings"] .brand-logo{
 
 /* Push offline banner down when app is scrolled? No — keep at top fixed */
 body.offline{padding-top:42px}
+/* ============================================================
+   MONTHLY BUDGET TRACKER (Budget tab)
+   ============================================================ */
+.budget-tracker-card{
+  padding:18px 20px;
+}
+
+.budget-tracker-card h3{
+  font-size:.78rem;
+  font-weight:700;
+  color:var(--text-soft);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+
+/* Overall progress */
+.budget-overall{
+  margin-bottom:18px;
+}
+.budget-overall-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom:10px;
+  gap:12px;
+}
+.budget-overall-spent{
+  font-family:'Sora',sans-serif;
+  font-weight:800;
+  font-size:1.15rem;
+  color:var(--text);
+  letter-spacing:-.02em;
+}
+.budget-overall-spent small{
+  font-family:'Inter',sans-serif;
+  font-weight:500;
+  font-size:.78rem;
+  color:var(--muted);
+  margin-left:6px;
+  letter-spacing:0;
+}
+.budget-overall-pct{
+  font-family:'Sora',sans-serif;
+  font-weight:800;
+  font-size:.9rem;
+  color:var(--accent);
+}
+.budget-overall-pct.warn{color:var(--gold)}
+.budget-overall-pct.over{color:var(--red)}
+
+/* Progress bar */
+.budget-bar{
+  height:10px;
+  border-radius:999px;
+  background:var(--card-2);
+  overflow:hidden;
+  margin-bottom:10px;
+}
+.budget-bar-fill{
+  height:100%;
+  border-radius:999px;
+  background:var(--accent);
+  transition:width .4s ease, background .25s;
+}
+.budget-bar-fill.warn{background:var(--gold)}
+.budget-bar-fill.over{background:var(--red)}
+
+.budget-remaining{
+  font-size:.78rem;
+  color:var(--muted);
+  font-weight:600;
+}
+.budget-remaining strong{
+  color:var(--text);
+  font-weight:700;
+}
+.budget-remaining.over strong{
+  color:var(--red);
+}
+
+/* Envelope rows */
+.budget-envelopes{
+  border-top:1px solid var(--line);
+  padding-top:14px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.envelope-row{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.envelope-top{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:.82rem;
+}
+.envelope-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+.envelope-name{
+  flex:1;
+  font-weight:600;
+  color:var(--text);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.envelope-amount{
+  font-family:'Sora',sans-serif;
+  font-weight:700;
+  font-size:.78rem;
+  color:var(--text-soft);
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+.envelope-warn{
+  color:var(--gold);
+  font-size:.78rem;
+  flex-shrink:0;
+}
+.envelope-warn.over{color:var(--red)}
+
+.envelope-bar{
+  height:6px;
+  border-radius:999px;
+  background:var(--card-2);
+  overflow:hidden;
+}
+.envelope-bar-fill{
+  height:100%;
+  border-radius:999px;
+  transition:width .35s ease, background .25s;
+}
+
+/* Empty budget prompt (in settings) */
+.budget-empty-note{
+  font-size:.78rem;
+  color:var(--muted);
+  line-height:1.55;
+  padding:8px 0;
+}
+
+/* ============================================================
+   BUDGET SETTINGS (inside Settings modal)
+   ============================================================ */
+.budget-toggle-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 0;
+}
+.budget-toggle-row .label{
+  font-weight:600;
+  font-size:.9rem;
+}
+.budget-toggle-row .sub{
+  font-size:.72rem;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+/* iOS-style switch */
+.switch{
+  position:relative;
+  width:46px;
+  height:26px;
+  flex-shrink:0;
+}
+.switch input{
+  opacity:0;
+  width:0;
+  height:0;
+  position:absolute;
+}
+.switch-track{
+  position:absolute;
+  inset:0;
+  background:var(--card-2);
+  border-radius:999px;
+  transition:.2s;
+  cursor:pointer;
+  border:1px solid var(--line);
+}
+.switch-track::after{
+  content:"";
+  position:absolute;
+  top:2px;
+  left:2px;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:var(--card);
+  box-shadow:0 1px 3px rgba(0,0,0,.15);
+  transition:.2s;
+}
+.switch input:checked + .switch-track{
+  background:var(--accent);
+  border-color:var(--accent);
+}
+.switch input:checked + .switch-track::after{
+  transform:translateX(20px);
+  background:#fff;
+}
+
+/* ============================================================
+   ENVELOPE EDITOR MODAL
+   ============================================================ */
+.envelope-edit-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-bottom:10px;
+}
+.envelope-edit-row input[type="text"]{
+  flex:1;
+  padding:11px 14px;
+  border-radius:12px;
+  border:1.5px solid var(--line);
+  background:var(--bg);
+  font-size:.88rem;
+  outline:none;
+  transition:.15s;
+}
+.envelope-edit-row input[type="text"]:focus{
+  border-color:var(--accent);
+  background:var(--card);
+}
+.envelope-edit-row .amount-wrap{
+  width:130px;
+  flex-shrink:0;
+}
+.envelope-edit-row .amount-wrap input{
+  padding:11px 12px;
+  font-size:.88rem;
+}
+.envelope-remove-btn{
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:var(--card);
+  color:var(--muted);
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:.8rem;
+  cursor:pointer;
+  transition:.15s;
+}
+.envelope-remove-btn:hover{
+  background:var(--red-soft);
+  color:var(--red);
+  border-color:var(--red);
+}
+.envelope-add-btn{
+  width:100%;
+  border:1px dashed var(--line);
+  background:transparent;
+  color:var(--muted);
+  padding:12px;
+  border-radius:12px;
+  font-weight:600;
+  font-size:.82rem;
+  cursor:pointer;
+  transition:.15s;
+  margin-top:4px;
+}
+.envelope-add-btn:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:var(--accent-soft);
+}
+
+/* Envelope suggestion chips (from existing categories) */
+.envelope-suggestions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+  margin-bottom:14px;
+}
+.envelope-suggestion{
+  border:1px solid var(--line);
+  background:var(--card);
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:.75rem;
+  font-weight:600;
+  color:var(--text-soft);
+  cursor:pointer;
+  transition:.15s;
+}
+.envelope-suggestion:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:var(--accent-soft);
+}

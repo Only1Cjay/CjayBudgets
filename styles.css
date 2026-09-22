@@ -1106,6 +1106,58 @@ body.offline{padding-top:42px}
   padding:18px 20px;
 }
 
+/* Collapsible header */
+.budget-tracker-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin-bottom:14px;
+}
+.budget-tracker-toggle{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:none;
+  border:none;
+  padding:0;
+  cursor:pointer;
+  color:inherit;
+  font-family:inherit;
+  text-align:left;
+  min-width:0;
+}
+.budget-tracker-toggle:hover .budget-chevron{
+  color:var(--accent);
+}
+.budget-tracker-toggle h3{
+  font-size:.78rem;
+  font-weight:700;
+  color:var(--text-soft);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  margin:0;
+}
+.budget-chevron{
+  font-size:.75rem;
+  color:var(--muted);
+  transition:transform .25s ease, color .15s;
+  margin-left:10px;
+  flex-shrink:0;
+}
+
+/* When card is collapsed, hide content + rotate chevron */
+.budget-tracker-card.collapsed #budgetTrackerContent{
+  display:none;
+}
+.budget-tracker-card.collapsed .budget-chevron{
+  transform:rotate(-90deg);
+}
+.budget-tracker-card.collapsed .budget-tracker-header{
+  margin-bottom:0;
+}
+
 .budget-tracker-card h3{
   font-size:.78rem;
   font-weight:700;

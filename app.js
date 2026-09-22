@@ -24,7 +24,12 @@ const CURRENCY = '₦';
    ============================================================ */
 let state = {
   entries: [],
-  savings: []
+  savings: [],
+  budget: {
+    enabled: false,
+    total: 0,
+    envelopes: []   // [{ id, category, amount }]
+  }
 };
 
 let settings = {
@@ -148,6 +153,14 @@ function loadState(){
       const p = JSON.parse(raw);
       state.entries = Array.isArray(p.entries) ? p.entries : [];
       state.savings = Array.isArray(p.savings) ? p.savings : [];
+             // Monthly budget (new)
+      if(p.budget && typeof p.budget === 'object'){
+        state.budget = {
+          enabled: !!p.budget.enabled,
+          total: Number(p.budget.total) || 0,
+          envelopes: Array.isArray(p.budget.envelopes) ? p.budget.envelopes : []
+        };
+      }
       settings.lastBudgetSync  = p.lastBudgetSync  || null;
       settings.lastSavingsSync = p.lastSavingsSync || null;
       settings.plum = !!p.plum;
@@ -157,9 +170,10 @@ function loadState(){
 
 function saveState(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
       entries: state.entries,
       savings: state.savings,
+      budget: state.budget,
       lastBudgetSync: settings.lastBudgetSync,
       lastSavingsSync: settings.lastSavingsSync,
       plum: settings.plum
@@ -178,7 +192,9 @@ function applyTheme(){
 
 function toggleTheme(){
   const isDark = document.body.dataset.theme === 'dark';
-  document.body.dataset.theme = isDark ? 'light' : 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.body.dataset.theme = next;
+  try{ localStorage.setItem('cjay_budgets_theme', next); }catch(e){}
   applyTheme();
 }
 

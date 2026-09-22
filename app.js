@@ -47,7 +47,7 @@ let ui = {
   categoryFilter: '',
   savingsTypeFilter: '',         // 'deposit' | 'withdrawal'
   viewOnly: false,
-  editingId: null
+  editingId: null,
  spendView: 'donut'   // 👈 NEW — 'donut' or 'bars'
 
 };

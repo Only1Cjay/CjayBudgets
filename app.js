@@ -52,7 +52,8 @@ let ui = {
   savingsTypeFilter: '',         // 'deposit' | 'withdrawal'
   viewOnly: false,
   editingId: null,
- spendView: 'donut'   // 👈 NEW — 'donut' or 'bars'
+ spendView: 'donut',   // 👈 NEW — 'donut' or 'bars'
+ budgetCollapsed: false
 
 };
 
@@ -440,11 +441,18 @@ function renderBudgetTracker(){
   if(!card || !content) return;
 
   // Hide if budget is disabled
-  if(!state.budget.enabled || state.budget.total <= 0){
+    if(!state.budget.enabled || state.budget.total <= 0){
     card.classList.add('hidden');
     return;
   }
   card.classList.remove('hidden');
+
+  // Apply collapse state
+  card.classList.toggle('collapsed', ui.budgetCollapsed);
+  const collapseBtn = document.getElementById('budgetCollapseBtn');
+  if(collapseBtn){
+    collapseBtn.setAttribute('aria-expanded', String(!ui.budgetCollapsed));
+  }
 
   // Overall progress
   const spent = totalExpensesInPeriod();
@@ -1419,38 +1427,6 @@ function openSettingsModal(){
       </div>
     </div>
     
-        <!-- Monthly budget -->
-    <div class="settings-block">
-      <h4>Monthly budget</h4>
-      <div class="blk-sub">Track your spending against a total limit</div>
-
-      <div class="budget-toggle-row">
-        <div>
-          <div class="label">Enable budget tracking</div>
-          <div class="sub">Shows a progress card on the Budget tab</div>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="budgetEnabledToggle" ${state.budget.enabled ? 'checked' : ''}>
-          <span class="switch-track"></span>
-        </label>
-      </div>
-
-      <div id="budgetSettingsDetails" class="${state.budget.enabled ? '' : 'hidden'}" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
-        <div class="form-group">
-          <label>Total monthly budget</label>
-          <div class="amount-wrap">
-            <span>${CURRENCY}</span>
-            <input type="number" id="budgetTotalInput" inputmode="decimal" placeholder="0" value="${state.budget.total || ''}">
-          </div>
-        </div>
-        <button type="button" class="btn btn-secondary" id="manageEnvelopesBtn" style="margin-top:0">
-          <i class="fas fa-layer-group"></i> Manage category envelopes
-        </button>
-        <div class="budget-empty-note" style="margin-top:12px">
-          Envelopes are optional. Add them if you want per-category limits (e.g. Food ₦10,000).
-        </div>
-      </div>
-    </div>
     <!-- Recurring templates -->
     <div class="settings-block">
       <h4>Recurring templates</h4>
@@ -1527,41 +1503,7 @@ function openSettingsModal(){
       toast(settings.plum ? 'Plum theme enabled' : 'Emerald theme enabled');
     };
   });
-  // Monthly budget toggle
-  const budgetToggle = document.getElementById('budgetEnabledToggle');
-  const budgetDetails = document.getElementById('budgetSettingsDetails');
-  const budgetTotalInput = document.getElementById('budgetTotalInput');
 
-  if(budgetToggle){
-    budgetToggle.onchange = () => {
-      state.budget.enabled = budgetToggle.checked;
-      budgetDetails.classList.toggle('hidden', !state.budget.enabled);
-      saveState();
-      render();
-    };
-  }
-
-  if(budgetTotalInput){
-    budgetTotalInput.onblur = () => {
-      const v = Number(budgetTotalInput.value) || 0;
-      state.budget.total = v > 0 ? v : 0;
-      saveState();
-      render();
-    };
-    // Also save on Enter
-    budgetTotalInput.onkeydown = (e) => {
-      if(e.key === 'Enter'){ budgetTotalInput.blur(); }
-    };
-  }
-
-  const manageEnvBtn = document.getElementById('manageEnvelopesBtn');
-  if(manageEnvBtn){
-    manageEnvBtn.onclick = () => {
-      closeModal();
-      setTimeout(openEnvelopeEditor, 100);
-    };
-  }
-   
   // Recurring templates
   const recurBtn = document.getElementById('recurringSettingsBtn');
   if(recurBtn){
@@ -1618,6 +1560,96 @@ function openSettingsModal(){
     state.entries = []; state.savings = [];
     saveState(); closeModal(); render();
     toast('All data cleared');
+  };
+}
+
+/* ============================================================
+   BUDGET SETTINGS MODAL (dedicated)
+   ============================================================ */
+function openBudgetSettingsModal(){
+  const isOn = state.budget.enabled;
+  const total = state.budget.total || '';
+  const envelopeCount = state.budget.envelopes.length;
+
+  openModal(`
+    <div class="modal-header">
+      <h2>Monthly Budget</h2>
+      <button class="close-x">&times;</button>
+    </div>
+
+    <div style="font-size:.85rem;color:var(--muted);line-height:1.55;margin-bottom:20px">
+      Set a total limit for the month, then optionally give each category its own envelope.
+    </div>
+
+    <!-- Master toggle -->
+    <div class="budget-toggle-row" style="border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:16px">
+      <div>
+        <div class="label" style="font-size:.95rem">Enable budget tracking</div>
+        <div class="sub">Shows a progress card on the Budget tab</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="budgetEnabledToggle" ${isOn ? 'checked' : ''}>
+        <span class="switch-track"></span>
+      </label>
+    </div>
+
+    <!-- Body (hidden when off) -->
+    <div id="budgetSettingsBody" class="${isOn ? '' : 'hidden'}">
+
+      <div class="form-group">
+        <label>Total monthly budget</label>
+        <div class="amount-wrap">
+          <span>${CURRENCY}</span>
+          <input type="number" id="budgetTotalInput" inputmode="decimal" placeholder="0" value="${total}">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Category envelopes <span style="text-transform:none;font-weight:500;color:var(--muted)">(optional)</span></label>
+        <button type="button" class="btn btn-secondary" id="manageEnvelopesBtn" style="margin-top:0">
+          <i class="fas fa-layer-group"></i>
+          ${envelopeCount > 0 ? `Manage ${envelopeCount} envelope${envelopeCount!==1?'s':''}` : 'Add category envelopes'}
+        </button>
+        <div class="budget-empty-note" style="margin-top:8px;padding:0">
+          ${envelopeCount > 0
+            ? 'Envelopes cap spending for individual categories.'
+            : 'Example: Food ₦10,000 · Data ₦5,000 · Transport ₦3,000'}
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary" id="saveBudgetBtn" style="margin-top:20px">
+        Save budget
+      </button>
+    </div>
+  `);
+
+  // Bind toggle
+  const toggle = document.getElementById('budgetEnabledToggle');
+  const body = document.getElementById('budgetSettingsBody');
+  toggle.onchange = () => {
+    body.classList.toggle('hidden', !toggle.checked);
+  };
+
+  // Bind envelope manager
+  document.getElementById('manageEnvelopesBtn').onclick = () => {
+    // Save current total before opening envelope editor
+    const v = Number(document.getElementById('budgetTotalInput').value) || 0;
+    state.budget.total = v > 0 ? v : 0;
+    state.budget.enabled = toggle.checked;
+    saveState();
+    closeModal();
+    setTimeout(openEnvelopeEditor, 100);
+  };
+
+  // Bind save
+  document.getElementById('saveBudgetBtn').onclick = () => {
+    const v = Number(document.getElementById('budgetTotalInput').value) || 0;
+    state.budget.total = v > 0 ? v : 0;
+    state.budget.enabled = toggle.checked;
+    saveState();
+    closeModal();
+    render();
+    toast('Budget saved');
   };
 }
 
@@ -1960,7 +1992,17 @@ function bindEvents(){
   document.getElementById('themeBtn').onclick = toggleTheme;
   document.getElementById('settingsBtn').onclick = openSettingsModal;
   document.getElementById('searchBtn').onclick = openSearchModal;
-  document.getElementById('budgetEditBtn').onclick = openSettingsModal;
+  document.getElementById('budgetBtn').onclick = openBudgetSettingsModal;
+
+  // Budget card collapse toggle
+  document.getElementById('budgetCollapseBtn').onclick = () => {
+    ui.budgetCollapsed = !ui.budgetCollapsed;
+    try{
+      localStorage.setItem('cjay_budgets_budget_collapsed', String(ui.budgetCollapsed));
+    }catch(e){}
+    renderBudgetTracker();
+  };
+  //document.getElementById('budgetEditBtn').onclick = openSettingsModal;
 
   // Period nav
   document.getElementById('prevPeriod').onclick = () => {
@@ -2086,10 +2128,16 @@ if('serviceWorker' in navigator){
    BOOT
    ============================================================ */
 function boot(){
-    // Restore spend chart preference (donut vs bars)
+  // Restore spend chart preference (donut vs bars)
   const savedSpendView = localStorage.getItem('cjay_budgets_spend_view');
   if(savedSpendView === 'donut' || savedSpendView === 'bars'){
     ui.spendView = savedSpendView;
+  }
+
+  // Restore budget card collapse state
+  const savedCollapsed = localStorage.getItem('cjay_budgets_budget_collapsed');
+  if(savedCollapsed === 'true'){
+    ui.budgetCollapsed = true;
   }
    
   createOfflineBanner();

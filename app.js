@@ -295,7 +295,7 @@ function renderBudget(){
 
   renderSpend(period);
   renderEntryList();
-renderBudgetTracker();
+j9999();
 
 }
 
@@ -531,7 +531,13 @@ function renderBudgetTracker(){
     }
   }
 
-  content.innerHTML = html;
+    content.innerHTML = html;
+
+  // Re-bind gear icon every render (so it never goes stale)
+  const gear = document.getElementById('budgetEditBtn');
+  if(gear){
+    gear.onclick = openBudgetSettingsModal;
+  }
 }
 function renderEntryList(){
   const list = document.getElementById('entryList');
@@ -1593,7 +1599,7 @@ function openBudgetSettingsModal(){
       </label>
     </div>
 
-    <!-- Body (hidden when off) -->
+      <!-- Body (hidden when off) -->
     <div id="budgetSettingsBody" class="${isOn ? '' : 'hidden'}">
 
       <div class="form-group">
@@ -1616,18 +1622,22 @@ function openBudgetSettingsModal(){
             : 'Example: Food ₦10,000 · Data ₦5,000 · Transport ₦3,000'}
         </div>
       </div>
-
-      <button type="button" class="btn btn-primary" id="saveBudgetBtn" style="margin-top:20px">
-        Save budget
-      </button>
     </div>
+
+    <button type="button" class="btn btn-primary" id="saveBudgetBtn" style="margin-top:20px">
+      Save budget
+    </button>
   `);
 
-  // Bind toggle
+   // Bind toggle — auto-saves immediately so it persists even if modal closes without Save
   const toggle = document.getElementById('budgetEnabledToggle');
   const body = document.getElementById('budgetSettingsBody');
   toggle.onchange = () => {
+    state.budget.enabled = toggle.checked;
+    saveState();
     body.classList.toggle('hidden', !toggle.checked);
+    // Live-update the card behind the modal
+    render();
   };
 
   // Bind envelope manager

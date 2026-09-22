@@ -295,6 +295,8 @@ function renderBudget(){
 
   renderSpend(period);
   renderEntryList();
+renderBudgetTracker();
+
 }
 
 function renderSpend(period){
@@ -407,7 +409,123 @@ function renderSpend(period){
     };
   });
 }
+/* ============================================================
+   MONTHLY BUDGET TRACKER
+   ============================================================ */
 
+// Palette used for envelope dots (matches spend chart)
+const ENV_COLORS = ['#2e7dd1','#0e7a5a','#e0a526','#d3453f','#8b5cf6',
+                    '#06b6d4','#f97316','#ec4899','#84cc16','#6366f1'];
+
+// Get all expenses in the current period, grouped by category
+function expensesByCategoryInPeriod(){
+  const period = entriesInPeriod().filter(e => e.type === 'Expense');
+  const totals = {};
+  period.forEach(e => {
+    const k = (e.category || 'Uncategorized').trim();
+    totals[k] = (totals[k] || 0) + (Number(e.amount) || 0);
+  });
+  return totals;
+}
+
+// Get total expenses in the current period
+function totalExpensesInPeriod(){
+  return entriesInPeriod()
+    .filter(e => e.type === 'Expense')
+    .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+}
+
+function renderBudgetTracker(){
+  const card = document.getElementById('budgetTrackerCard');
+  const content = document.getElementById('budgetTrackerContent');
+  if(!card || !content) return;
+
+  // Hide if budget is disabled
+  if(!state.budget.enabled || state.budget.total <= 0){
+    card.classList.add('hidden');
+    return;
+  }
+  card.classList.remove('hidden');
+
+  // Overall progress
+  const spent = totalExpensesInPeriod();
+  const total = state.budget.total;
+  const remaining = total - spent;
+  const pctRaw = (spent / total) * 100;
+  const pct = Math.min(Math.round(pctRaw), 999);
+  const barWidth = Math.min(pctRaw, 100);
+
+  // Color state for the overall bar
+  let stateClass = '';
+  if(spent > total) stateClass = 'over';
+  else if(pctRaw >= 90) stateClass = 'over';
+  else if(pctRaw >= 70) stateClass = 'warn';
+
+  const remainingLabel = remaining >= 0
+    ? `<strong>${fmtNaira(remaining)}</strong> remaining`
+    : `<strong>${fmtNaira(Math.abs(remaining))}</strong> over budget`;
+
+  let html = `
+    <div class="budget-overall">
+      <div class="budget-overall-top">
+        <div class="budget-overall-spent">
+          ${fmtNaira(spent)}<small>of ${fmtNaira(total)}</small>
+        </div>
+        <div class="budget-overall-pct ${stateClass}">${pct}%</div>
+      </div>
+      <div class="budget-bar">
+        <div class="budget-bar-fill ${stateClass}" style="width:${barWidth}%"></div>
+      </div>
+      <div class="budget-remaining ${stateClass === 'over' ? 'over' : ''}">
+        ${remainingLabel}
+      </div>
+    </div>
+  `;
+
+  // Envelopes
+  if(state.budget.envelopes.length > 0){
+    const byCat = expensesByCategoryInPeriod();
+
+    const envelopeRows = state.budget.envelopes.map((env, i) => {
+      const envSpent = byCat[env.category] || 0;
+      const envTotal = Number(env.amount) || 0;
+      if(envTotal <= 0) return '';
+
+      const envPctRaw = (envSpent / envTotal) * 100;
+      const envBarWidth = Math.min(envPctRaw, 100);
+
+      let envState = '';
+      if(envSpent > envTotal) envState = 'over';
+      else if(envPctRaw >= 90) envState = 'over';
+      else if(envPctRaw >= 70) envState = 'warn';
+
+      const color = ENV_COLORS[i % ENV_COLORS.length];
+      const overBadge = envSpent > envTotal
+        ? `<i class="fas fa-exclamation-triangle envelope-warn over" title="Over budget"></i>`
+        : (envPctRaw >= 90 ? `<i class="fas fa-exclamation-triangle envelope-warn" title="Almost at limit"></i>` : '');
+
+      return `
+        <div class="envelope-row">
+          <div class="envelope-top">
+            <span class="envelope-dot" style="background:${color}"></span>
+            <span class="envelope-name">${esc(env.category)}</span>
+            ${overBadge}
+            <span class="envelope-amount">${fmtNaira(envSpent)} / ${fmtNaira(envTotal)}</span>
+          </div>
+          <div class="envelope-bar">
+            <div class="envelope-bar-fill ${envState}" style="width:${envBarWidth}%;background:${envState ? (envState === 'over' ? 'var(--red)' : 'var(--gold)') : color}"></div>
+          </div>
+        </div>
+      `;
+    }).filter(Boolean).join('');
+
+    if(envelopeRows){
+      html += `<div class="budget-envelopes">${envelopeRows}</div>`;
+    }
+  }
+
+  content.innerHTML = html;
+}
 function renderEntryList(){
   const list = document.getElementById('entryList');
   const empty = document.getElementById('entriesEmpty');
@@ -925,6 +1043,139 @@ function openRecurringModal(){
 }
 
 /* ============================================================
+   ENVELOPE EDITOR MODAL
+   ============================================================ */
+function openEnvelopeEditor(){
+  // Existing categories from entries (to offer as suggestions)
+  const existingCats = Array.from(new Set(
+    state.entries
+      .filter(e => e.type === 'Expense' && e.category)
+      .map(e => e.category.trim())
+  )).sort();
+
+  // Working copy of envelopes
+  let draft = state.budget.envelopes.map(e => ({ ...e }));
+  if(draft.length === 0){
+    draft = [{ id: uid(), category: '', amount: 0 }];
+  }
+
+  openModal(`
+    <div class="modal-header">
+      <h2>Category Envelopes</h2>
+      <button class="close-x">&times;</button>
+    </div>
+    <div style="font-size:.82rem;color:var(--muted);line-height:1.55;margin-bottom:16px">
+      Set a spending limit per category. Leave blank to skip.
+    </div>
+    <div id="envelopeEditorList"></div>
+    <button type="button" class="envelope-add-btn" id="addEnvelopeBtn">
+      <i class="fas fa-plus"></i> Add another category
+    </button>
+
+    ${existingCats.length ? `
+      <div style="margin-top:16px;font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">
+        Suggestions
+      </div>
+      <div class="envelope-suggestions" id="envelopeSuggestions">
+        ${existingCats.map(c => `<button type="button" class="envelope-suggestion" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
+      </div>
+    ` : ''}
+
+    <button type="button" class="btn btn-primary" id="saveEnvelopesBtn" style="margin-top:20px">
+      Save envelopes
+    </button>
+  `);
+
+  // Render the current draft list
+  function renderEditorList(){
+    const list = document.getElementById('envelopeEditorList');
+    list.innerHTML = draft.map((env, i) => `
+      <div class="envelope-edit-row" data-i="${i}">
+        <input type="text" class="env-cat" placeholder="Category" value="${esc(env.category)}" maxlength="40">
+        <div class="amount-wrap">
+          <span>${CURRENCY}</span>
+          <input type="number" class="env-amt" inputmode="decimal" placeholder="0" value="${env.amount || ''}">
+        </div>
+        <button type="button" class="envelope-remove-btn" data-remove="${i}" title="Remove">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    `).join('');
+
+    // Bind inputs
+    list.querySelectorAll('.envelope-edit-row').forEach(row => {
+      const i = Number(row.dataset.i);
+      const catInput = row.querySelector('.env-cat');
+      const amtInput = row.querySelector('.env-amt');
+      catInput.oninput = () => { draft[i].category = catInput.value; };
+      amtInput.oninput = () => { draft[i].amount = Number(amtInput.value) || 0; };
+    });
+
+    // Bind remove
+    list.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.onclick = () => {
+        const i = Number(btn.dataset.remove);
+        draft.splice(i, 1);
+        if(draft.length === 0){
+          draft.push({ id: uid(), category: '', amount: 0 });
+        }
+        renderEditorList();
+      };
+    });
+  }
+
+  renderEditorList();
+
+  // Add row
+  document.getElementById('addEnvelopeBtn').onclick = () => {
+    draft.push({ id: uid(), category: '', amount: 0 });
+    renderEditorList();
+    // Focus the newest category input
+    const rows = document.querySelectorAll('.envelope-edit-row');
+    const last = rows[rows.length - 1];
+    if(last) last.querySelector('.env-cat').focus();
+  };
+
+  // Suggestion chips — click to fill next empty slot
+  const suggestions = document.getElementById('envelopeSuggestions');
+  if(suggestions){
+    suggestions.querySelectorAll('.envelope-suggestion').forEach(btn => {
+      btn.onclick = () => {
+        const cat = btn.dataset.cat;
+        // Already present? skip
+        if(draft.some(e => e.category === cat)) return;
+        // Find first empty slot, or add a new one
+        const emptyIdx = draft.findIndex(e => !e.category);
+        if(emptyIdx >= 0){
+          draft[emptyIdx].category = cat;
+        } else {
+          draft.push({ id: uid(), category: cat, amount: 0 });
+        }
+        renderEditorList();
+      };
+    });
+  }
+
+  // Save
+  document.getElementById('saveEnvelopesBtn').onclick = () => {
+    // Filter out empties
+    const cleaned = draft
+      .filter(e => e.category && e.category.trim() && Number(e.amount) > 0)
+      .map(e => ({
+        id: e.id || uid(),
+        category: e.category.trim(),
+        amount: Number(e.amount)
+      }));
+    state.budget.envelopes = cleaned;
+    saveState();
+    closeModal();
+    render();
+    toast('Envelopes saved');
+  };
+}
+
+   
+/* ============================================================
    SEARCH & FILTER MODAL
    ============================================================ */
 function openSearchModal(){
@@ -1169,6 +1420,38 @@ function openSettingsModal(){
       </div>
     </div>
     
+        <!-- Monthly budget -->
+    <div class="settings-block">
+      <h4>Monthly budget</h4>
+      <div class="blk-sub">Track your spending against a total limit</div>
+
+      <div class="budget-toggle-row">
+        <div>
+          <div class="label">Enable budget tracking</div>
+          <div class="sub">Shows a progress card on the Budget tab</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="budgetEnabledToggle" ${state.budget.enabled ? 'checked' : ''}>
+          <span class="switch-track"></span>
+        </label>
+      </div>
+
+      <div id="budgetSettingsDetails" class="${state.budget.enabled ? '' : 'hidden'}" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+        <div class="form-group">
+          <label>Total monthly budget</label>
+          <div class="amount-wrap">
+            <span>${CURRENCY}</span>
+            <input type="number" id="budgetTotalInput" inputmode="decimal" placeholder="0" value="${state.budget.total || ''}">
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary" id="manageEnvelopesBtn" style="margin-top:0">
+          <i class="fas fa-layer-group"></i> Manage category envelopes
+        </button>
+        <div class="budget-empty-note" style="margin-top:12px">
+          Envelopes are optional. Add them if you want per-category limits (e.g. Food ₦10,000).
+        </div>
+      </div>
+    </div>
     <!-- Recurring templates -->
     <div class="settings-block">
       <h4>Recurring templates</h4>
@@ -1245,6 +1528,41 @@ function openSettingsModal(){
       toast(settings.plum ? 'Plum theme enabled' : 'Emerald theme enabled');
     };
   });
+  // Monthly budget toggle
+  const budgetToggle = document.getElementById('budgetEnabledToggle');
+  const budgetDetails = document.getElementById('budgetSettingsDetails');
+  const budgetTotalInput = document.getElementById('budgetTotalInput');
+
+  if(budgetToggle){
+    budgetToggle.onchange = () => {
+      state.budget.enabled = budgetToggle.checked;
+      budgetDetails.classList.toggle('hidden', !state.budget.enabled);
+      saveState();
+      render();
+    };
+  }
+
+  if(budgetTotalInput){
+    budgetTotalInput.onblur = () => {
+      const v = Number(budgetTotalInput.value) || 0;
+      state.budget.total = v > 0 ? v : 0;
+      saveState();
+      render();
+    };
+    // Also save on Enter
+    budgetTotalInput.onkeydown = (e) => {
+      if(e.key === 'Enter'){ budgetTotalInput.blur(); }
+    };
+  }
+
+  const manageEnvBtn = document.getElementById('manageEnvelopesBtn');
+  if(manageEnvBtn){
+    manageEnvBtn.onclick = () => {
+      closeModal();
+      setTimeout(openEnvelopeEditor, 100);
+    };
+  }
+   
   // Recurring templates
   const recurBtn = document.getElementById('recurringSettingsBtn');
   if(recurBtn){
@@ -1643,6 +1961,7 @@ function bindEvents(){
   document.getElementById('themeBtn').onclick = toggleTheme;
   document.getElementById('settingsBtn').onclick = openSettingsModal;
   document.getElementById('searchBtn').onclick = openSearchModal;
+  document.getElementById('budgetEditBtn').onclick = openBudgetSettingsModal;
 
   // Period nav
   document.getElementById('prevPeriod').onclick = () => {

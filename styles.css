@@ -278,6 +278,8 @@ body[data-tab="savings"] .brand-logo{
   letter-spacing:.08em;
   font-weight:700;
   color:var(--muted);
+  text-align:center;
+
 }
 .summary-card .sc-val{
   font-family:'Sora',sans-serif;
@@ -288,11 +290,17 @@ body[data-tab="savings"] .brand-logo{
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
+  text-align:center;
+
 }
 .summary-card .sc-sub{
-  font-size:.65rem;
+  font-size:.6rem;
   color:var(--muted);
-  font-weight:500;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  text-align:center;
+  margin-top:2px;
 }
 .summary-card.income{
   background:var(--green-soft);
@@ -361,7 +369,127 @@ body[data-tab="savings"] .brand-logo{
   text-align:center;color:var(--muted);font-size:.85rem;
   padding:16px 8px;
 }
+/* Donut / Bars toggle */
+.spend-toggle{
+  display:inline-flex;
+  background:var(--card-2);
+  border-radius:999px;
+  padding:3px;
+  gap:2px;
+  margin-left:auto;
+}
+.spend-toggle button{
+  border:none;
+  background:transparent;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:.7rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  gap:5px;
+  transition:.15s;
+}
+.spend-toggle button.active{
+  background:var(--card);
+  color:var(--accent);
+  box-shadow:var(--shadow-sm);
+}
+.spend-toggle button:hover:not(.active){
+  color:var(--text-soft);
+}
+.spend-toggle button i{font-size:.7rem}
 
+/* Chart header row */
+.spend-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:12px;
+  gap:12px;
+}
+
+/* Category rows with % and mini-bar */
+.spend-row{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.spend-row-top{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:.82rem;
+}
+.spend-row-bar{
+  height:5px;
+  border-radius:999px;
+  background:var(--card-2);
+  overflow:hidden;
+}
+.spend-row-bar > div{
+  height:100%;
+  border-radius:999px;
+  transition:width .3s ease;
+}
+.spend-pct{
+  font-size:.7rem;
+  color:var(--muted);
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Bars view (horizontal bar chart) */
+.spend-bars-view{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  padding:4px 0;
+}
+.spend-bars-view .bar-row{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.spend-bars-view .bar-label{
+  display:flex;
+  justify-content:space-between;
+  font-size:.82rem;
+  font-weight:600;
+}
+.spend-bars-view .bar-label .bar-name{
+  color:var(--text);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.spend-bars-view .bar-label .bar-amt{
+  color:var(--text-soft);
+  font-family:'Sora',sans-serif;
+  font-weight:700;
+  flex-shrink:0;
+}
+.spend-bars-view .bar-track{
+  height:10px;
+  border-radius:999px;
+  background:var(--card-2);
+  overflow:hidden;
+}
+.spend-bars-view .bar-fill{
+  height:100%;
+  border-radius:999px;
+  transition:width .4s ease;
+}
+
+/* On desktop, give the card a bit more breathing room */
+@media (min-width:600px){
+  .spend-card{padding:22px 24px}
+  .spend-grid{grid-template-columns:180px 1fr;gap:24px}
+  .donut-wrap{width:180px;height:180px}
+}
 @media (max-width:480px){
   .spend-grid{grid-template-columns:1fr;gap:14px}
   .donut-wrap{margin:0 auto}

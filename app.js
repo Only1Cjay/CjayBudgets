@@ -295,7 +295,7 @@ function renderBudget(){
 
   renderSpend(period);
   renderEntryList();
-j9999();
+();
 
 }
 

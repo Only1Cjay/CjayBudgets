@@ -8,7 +8,7 @@
    Current version: v1.0.0
    ============================================================ */
 
-const CACHE_VERSION = 'v1.0.2';
+const CACHE_VERSION = 'v1.0.3';
 const CACHE_NAME = 'cjaybudgets-' + CACHE_VERSION;
 
 // App files — stale-while-revalidate

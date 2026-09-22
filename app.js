@@ -48,6 +48,8 @@ let ui = {
   savingsTypeFilter: '',         // 'deposit' | 'withdrawal'
   viewOnly: false,
   editingId: null
+ spendView: 'donut'   // 👈 NEW — 'donut' or 'bars'
+
 };
 
 let pendingUndo = null;   // { action, payload, timeout }
@@ -282,10 +284,12 @@ function renderBudget(){
 function renderSpend(period){
   const wrap = document.getElementById('spendContent');
   const expenses = period.filter(e=>e.type==='Expense');
+
   if(!expenses.length){
     wrap.innerHTML = '<div class="spend-empty">No expenses logged this period yet.</div>';
     return;
   }
+
   const totals = {};
   expenses.forEach(e => {
     const k = e.category || 'Uncategorized';
@@ -297,36 +301,95 @@ function renderSpend(period){
   const COLORS = ['#2e7dd1','#0e7a5a','#e0a526','#d3453f','#8b5cf6',
                   '#06b6d4','#f97316','#ec4899','#84cc16','#6366f1'];
 
-  const R = 60, C = 2 * Math.PI * R;
-  let offset = 0;
-  const arcs = sorted.map(([cat, amt], i) => {
-    const frac = amt / total;
-    const len = C * frac;
-    const seg = `<circle cx="70" cy="70" r="${R}"
-        fill="none" stroke="${COLORS[i % COLORS.length]}" stroke-width="18"
-        stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}"
-        stroke-dashoffset="${(-offset).toFixed(2)}"/>`;
-    offset += len;
-    return seg;
-  }).join('');
+  const isBars = ui.spendView === 'bars';
 
-  const donut = `
-    <div class="donut-wrap">
-      <svg viewBox="0 0 140 140">${arcs}</svg>
-      <div class="donut-center">
-        <div class="dc-label">Total spent</div>
-        <div class="dc-val num">${fmtNaira(total)}</div>
+  // Header with toggle
+  const header = `
+    <div class="spend-header">
+      <div class="spend-toggle">
+        <button type="button" data-spend-view="donut" class="${!isBars?'active':''}">
+          <i class="fas fa-chart-pie"></i> Donut
+        </button>
+        <button type="button" data-spend-view="bars" class="${isBars?'active':''}">
+          <i class="fas fa-chart-bar"></i> Bars
+        </button>
       </div>
     </div>`;
 
-  const bars = sorted.slice(0,6).map(([cat, amt], i) => `
-    <div class="spend-row">
-      <span class="spend-dot" style="background:${COLORS[i % COLORS.length]}"></span>
-      <span class="spend-name">${esc(cat)}</span>
-      <span class="spend-amt num">${fmtNaira(amt)}</span>
-    </div>`).join('');
+  let bodyHtml = '';
 
-  wrap.innerHTML = `<div class="spend-grid">${donut}<div class="spend-bars">${bars}</div></div>`;
+  if(isBars){
+    // Horizontal bar chart view
+    const maxAmt = sorted[0][1];
+    const rows = sorted.map(([cat, amt], i) => {
+      const pctWidth = (amt / maxAmt) * 100;
+      const pctOfTotal = Math.round((amt / total) * 100);
+      return `
+        <div class="bar-row">
+          <div class="bar-label">
+            <span class="bar-name">${esc(cat)} · ${pctOfTotal}%</span>
+            <span class="bar-amt num">${fmtNaira(amt)}</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${pctWidth}%;background:${COLORS[i % COLORS.length]}"></div>
+          </div>
+        </div>`;
+    }).join('');
+    bodyHtml = `<div class="spend-bars-view">${rows}</div>`;
+  } else {
+    // Donut + enhanced category list
+    const R = 60, C = 2 * Math.PI * R;
+    let offset = 0;
+    const arcs = sorted.map(([cat, amt], i) => {
+      const frac = amt / total;
+      const len = C * frac;
+      const seg = `<circle cx="70" cy="70" r="${R}"
+          fill="none" stroke="${COLORS[i % COLORS.length]}" stroke-width="18"
+          stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}"
+          stroke-dashoffset="${(-offset).toFixed(2)}"/>`;
+      offset += len;
+      return seg;
+    }).join('');
+
+    const donut = `
+      <div class="donut-wrap">
+        <svg viewBox="0 0 140 140">${arcs}</svg>
+        <div class="donut-center">
+          <div class="dc-label">Total spent</div>
+          <div class="dc-val num">${fmtNaira(total)}</div>
+        </div>
+      </div>`;
+
+    const rows = sorted.slice(0,6).map(([cat, amt], i) => {
+      const pctOfTotal = Math.round((amt / total) * 100);
+      const barWidth = (amt / sorted[0][1]) * 100;
+      return `
+        <div class="spend-row">
+          <div class="spend-row-top">
+            <span class="spend-dot" style="background:${COLORS[i % COLORS.length]}"></span>
+            <span class="spend-name">${esc(cat)}</span>
+            <span class="spend-pct">${pctOfTotal}%</span>
+            <span class="spend-amt num">${fmtNaira(amt)}</span>
+          </div>
+          <div class="spend-row-bar">
+            <div style="width:${barWidth}%;background:${COLORS[i % COLORS.length]}"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    bodyHtml = `<div class="spend-grid">${donut}<div class="spend-bars">${rows}</div></div>`;
+  }
+
+  wrap.innerHTML = header + bodyHtml;
+
+  // Bind toggle
+  wrap.querySelectorAll('[data-spend-view]').forEach(btn => {
+    btn.onclick = () => {
+      ui.spendView = btn.dataset.spendView;
+      localStorage.setItem('cjay_budgets_spend_view', ui.spendView);
+      renderSpend(period);
+    };
+  });
 }
 
 function renderEntryList(){
@@ -1089,7 +1152,16 @@ function openSettingsModal(){
         </button>
       </div>
     </div>
-
+    
+    <!-- Recurring templates -->
+    <div class="settings-block">
+      <h4>Recurring templates</h4>
+      <div class="blk-sub">Manage saved recurring entries</div>
+      <button type="button" class="btn btn-secondary" id="recurringSettingsBtn" style="margin-top:0">
+        <i class="fas fa-sync-alt"></i> Open recurring manager
+      </button>
+    </div>
+    
     <!-- Backup -->
     <div class="settings-block">
       <h4>Local backup</h4>
@@ -1157,7 +1229,14 @@ function openSettingsModal(){
       toast(settings.plum ? 'Plum theme enabled' : 'Emerald theme enabled');
     };
   });
-
+  // Recurring templates
+  const recurBtn = document.getElementById('recurringSettingsBtn');
+  if(recurBtn){
+    recurBtn.onclick = () => {
+      closeModal();
+      setTimeout(openRecurringModal, 100);
+    };
+  }
   // Export
   document.getElementById('exportBtn').onclick = () => {
     const blob = new Blob([JSON.stringify({
@@ -1573,7 +1652,6 @@ function bindEvents(){
     render();
   };
   document.getElementById('periodLabel').onclick = openPeriodPicker;
-  document.getElementById('recurringBtn').onclick = openRecurringModal;
 
   // Savings actions
   document.getElementById('depositBtn').onclick  = () => openSavingsModal('deposit');
@@ -1585,33 +1663,6 @@ function bindEvents(){
     else openSavingsModal('deposit');
   };
 }
-
-/* ============================================================
-   BOOT
-   ============================================================ */
-function boot(){
-  // Detect view-only mode via URL param ?view=1
-  const params = new URLSearchParams(window.location.search);
-  const viewOnly = params.get('view') === '1' || params.get('readonly') === '1';
-
-  loadState();
-  applyTheme();
-  bindEvents();
-  switchTab('budget');
-
-  if(viewOnly) enableViewOnly();
-
-  render();
-  initDrive();
-
-  // Hide loading screen
-  setTimeout(() => {
-    const ls = document.getElementById('loadingScreen');
-    ls.classList.add('hidden');
-    setTimeout(() => ls.remove(), 400);
-  }, 200);
-}
-
 /* ============================================================
    OFFLINE / ONLINE HANDLING
    ============================================================ */
@@ -1701,6 +1752,12 @@ if('serviceWorker' in navigator){
    BOOT
    ============================================================ */
 function boot(){
+    // Restore spend chart preference (donut vs bars)
+  const savedSpendView = localStorage.getItem('cjay_budgets_spend_view');
+  if(savedSpendView === 'donut' || savedSpendView === 'bars'){
+    ui.spendView = savedSpendView;
+  }
+   
   createOfflineBanner();
   updateOnlineStatus();
   window.addEventListener('online', updateOnlineStatus);

@@ -1961,7 +1961,7 @@ function bindEvents(){
   document.getElementById('themeBtn').onclick = toggleTheme;
   document.getElementById('settingsBtn').onclick = openSettingsModal;
   document.getElementById('searchBtn').onclick = openSearchModal;
-  document.getElementById('budgetEditBtn').onclick = openBudgetSettingsModal;
+  document.getElementById('budgetEditBtn').onclick = openSettingsModal;
 
   // Period nav
   document.getElementById('prevPeriod').onclick = () => {

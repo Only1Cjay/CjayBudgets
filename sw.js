@@ -8,7 +8,7 @@
    Current version: v1.0.0
    ============================================================ */
 
-const CACHE_VERSION = 'v1.0.1';
+const CACHE_VERSION = 'v1.0.2';
 const CACHE_NAME = 'cjaybudgets-' + CACHE_VERSION;
 
 // App files — stale-while-revalidate
@@ -115,8 +115,7 @@ async function staleWhileRevalidate(req){
   const fetchPromise = fetch(req).then(fresh => {
     if(fresh && fresh.status === 200){
       cache.put(req, fresh.clone());
-      // Notify clients that a fresh version is available
-      notifyUpdate(fresh.headers.get('etag') || Date.now().toString());
+      // Silent cache update — no toast. Toast fires only when sw.js version bumps.
     }
     return fresh;
   }).catch(() => cached);

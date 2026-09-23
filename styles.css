@@ -351,6 +351,21 @@ body[data-tab="savings"] .brand-logo{
   flex-direction:column;
   gap:6px;
   min-width:0;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+
+/* Clickable summary cards (income + expense) */
+.summary-card.clickable{
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+.summary-card.clickable:hover{
+  box-shadow:var(--shadow);
+  transform:translateY(-1px);
+}
+.summary-card.clickable:active{
+  transform:scale(.97);
 }
 .summary-card .sc-label{
   font-size:.6rem;
@@ -548,6 +563,90 @@ body[data-tab="savings"] .brand-logo{
 .spend-empty{
   text-align:center;color:var(--muted);font-size:.85rem;
   padding:16px 8px;
+}
+
+/* ============================================================
+   SUMMARY DETAIL MODAL (Income / Expenses drill-down)
+   ============================================================ */
+.summary-modal-total{
+  background:var(--card-2);
+  border-radius:16px;
+  padding:16px 20px;
+  margin-bottom:18px;
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+}
+.summary-modal-total .smt-label{
+  font-size:.68rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--muted);
+}
+.summary-modal-total .smt-value{
+  font-family:'Sora',sans-serif;
+  font-weight:800;
+  font-size:1.4rem;
+  letter-spacing:-.02em;
+}
+.summary-modal-total.income .smt-value{color:var(--green)}
+.summary-modal-total.expense .smt-value{color:var(--red)}
+
+/* Embedded entries section */
+.summary-modal-section-label{
+  font-size:.7rem;
+  font-weight:700;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  margin:20px 0 10px;
+}
+.summary-modal-entries{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.summary-modal-empty{
+  text-align:center;
+  color:var(--muted);
+  font-size:.85rem;
+  padding:24px 8px;
+}
+
+/* Breakdown toggle at bottom of expenses modal */
+.summary-breakdown-toggle{
+  width:100%;
+  border:1px dashed var(--line);
+  background:transparent;
+  color:var(--muted);
+  padding:12px;
+  border-radius:12px;
+  font-size:.8rem;
+  font-weight:700;
+  cursor:pointer;
+  transition:.15s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top:12px;
+  font-family:inherit;
+}
+.summary-breakdown-toggle:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:var(--accent-soft);
+}
+.summary-breakdown-content{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+  display:none;
+}
+.summary-breakdown-content.expanded{
+  display:block;
 }
 /* Donut / Bars toggle */
 .spend-toggle{

@@ -176,7 +176,64 @@ body[data-tab="savings"] .brand-logo{
 .brand-name{font-family:'Sora',sans-serif;font-weight:700;font-size:1.1rem;line-height:1.1;letter-spacing:-.02em}
 .brand-name small{display:block;font-family:'Inter',sans-serif;font-size:.68rem;font-weight:500;color:var(--muted);margin-top:2px;letter-spacing:0}
 
-.top-actions{display:flex;gap:8px}
+/* Hide subtitle on narrow screens to declutter the top bar */
+@media (max-width:520px){
+  .brand-name small{display:none}
+}
+.top-actions{display:flex;gap:8px;align-items:center}
+
+/* Menu dropdown wrapper */
+.menu-wrap{
+  position:relative;
+}
+.menu-dropdown{
+  position:absolute;
+  top:calc(100% + 8px);
+  right:0;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  box-shadow:var(--shadow-lg);
+  padding:6px;
+  min-width:180px;
+  z-index:100;
+  animation:menuPop .15s ease-out;
+}
+@keyframes menuPop{
+  from{opacity:0;transform:translateY(-6px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.menu-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  background:none;
+  border:none;
+  padding:11px 14px;
+  border-radius:12px;
+  font-size:.88rem;
+  font-weight:600;
+  color:var(--text);
+  cursor:pointer;
+  text-align:left;
+  font-family:inherit;
+  transition:.15s;
+}
+.menu-item:hover{
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+.menu-item i{
+  width:16px;
+  text-align:center;
+  color:var(--muted);
+  font-size:.9rem;
+  transition:color .15s;
+}
+.menu-item:hover i{
+  color:var(--accent);
+}
 .icon-btn{
   width:40px;height:40px;border-radius:14px;border:1px solid var(--line);
   background:var(--card);color:var(--text);
@@ -347,7 +404,90 @@ body[data-tab="savings"] .brand-logo{
    SPENDING BY CATEGORY (donut + bars)
    ============================================================ */
 .spend-card{padding:20px}
-.spend-grid{
+
+/* Collapsible header for the spend card */
+.spend-card-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:0;
+}
+.spend-card-header h3{
+  margin:0;
+  font-size:.78rem;
+  font-weight:700;
+  color:var(--text-soft);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.spend-card-header h3 .spend-chevron{
+  font-size:.7rem;
+  color:var(--muted);
+  transition:transform .25s ease;
+}
+.spend-card.expanded .spend-card-header h3 .spend-chevron{
+  transform:rotate(90deg);
+}
+
+/* Compact summary (shown when collapsed) */
+.spend-compact{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+}
+.spend-compact-text{
+  font-size:.8rem;
+  color:var(--muted);
+  font-weight:500;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.spend-compact-text strong{
+  color:var(--text);
+  font-weight:700;
+}
+.spend-see-more{
+  background:none;
+  border:none;
+  color:var(--accent);
+  font-size:.72rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  padding:4px 8px;
+  border-radius:8px;
+  cursor:pointer;
+  flex-shrink:0;
+  font-family:inherit;
+  transition:.15s;
+}
+.spend-see-more:hover{
+  background:var(--accent-soft);
+}
+
+/* Hide body content when collapsed */
+.spend-card-body{
+  margin-top:16px;
+  display:block;
+}
+.spend-card:not(.expanded) .spend-card-body{
+  display:none;
+}
+.spend-card:not(.expanded) .spend-compact{
+  display:flex;
+}
+.spend-card.expanded .spend-compact{
+  display:none;
+}.spend-grid{
   display:grid;grid-template-columns:140px 1fr;gap:18px;align-items:center;
 }
 .donut-wrap{position:relative;width:140px;height:140px;flex-shrink:0}

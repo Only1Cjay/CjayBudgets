@@ -27,7 +27,12 @@ let state = {
   budget: {
     enabled: false,
     total: 0,
-    envelopes: []   // [{ id, category, amount }]
+    envelopes: []
+  },
+  goal: {
+    enabled: false,
+    label: '',
+    target: 0
   }
 };
 
@@ -154,12 +159,21 @@ function loadState(){
       const p = JSON.parse(raw);
       state.entries = Array.isArray(p.entries) ? p.entries : [];
       state.savings = Array.isArray(p.savings) ? p.savings : [];
-             // Monthly budget (new)
+              // Monthly budget (new)
       if(p.budget && typeof p.budget === 'object'){
         state.budget = {
           enabled: !!p.budget.enabled,
           total: Number(p.budget.total) || 0,
           envelopes: Array.isArray(p.budget.envelopes) ? p.budget.envelopes : []
+        };
+      }
+
+      // Savings goal (new)
+      if(p.goal && typeof p.goal === 'object'){
+        state.goal = {
+          enabled: !!p.goal.enabled,
+          label: String(p.goal.label || ''),
+          target: Number(p.goal.target) || 0
         };
       }
       settings.lastBudgetSync  = p.lastBudgetSync  || null;
@@ -171,10 +185,11 @@ function loadState(){
 
 function saveState(){
   try{
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
       entries: state.entries,
       savings: state.savings,
       budget: state.budget,
+      goal: state.goal,
       lastBudgetSync: settings.lastBudgetSync,
       lastSavingsSync: settings.lastSavingsSync,
       plum: settings.plum
@@ -234,10 +249,15 @@ function switchTab(tab){
     ? '<i class="fas fa-wallet"></i>'
     : '<i class="fas fa-piggy-bank"></i>';
 
+   // Show "Savings Goal" menu item only on Savings tab
+  const goalBtn = document.getElementById('goalBtn');
+  if(goalBtn){
+    goalBtn.classList.toggle('hidden', tab !== 'savings');
+  }
+
   updateFab();
   window.scrollTo({top:0, behavior:'smooth'});
 }
-
 function updateFab(){
   const fab = document.getElementById('fabBtn');
   if(ui.viewOnly){ fab.classList.add('hidden'); return; }
@@ -580,7 +600,122 @@ function renderSavings(){
     sub.className = 'sh-sub ' + (net >= 0 ? 'up' : 'down');
   }
 
+  renderSavingsSummary();
+  renderGoalCard();
   renderLedger();
+}
+
+/* ============================================================
+   SAVINGS SUMMARY (weekly / monthly momentum)
+   ============================================================ */
+function renderSavingsSummary(){
+  const el = document.getElementById('savingsSummary');
+  if(!el) return;
+
+  if(!state.savings.length){
+    el.classList.add('hidden');
+    return;
+  }
+
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  const sumNet = (from, to) => state.savings
+    .filter(s => {
+      const d = parseDate(s.date);
+      return d && d >= from && d <= to;
+    })
+    .reduce((sum, s) => sum + (s.type === 'deposit' ? 1 : -1) * (Number(s.amount) || 0), 0);
+
+  const thisMonth = sumNet(thisMonthStart, now);
+  const lastMonth = sumNet(lastMonthStart, lastMonthEnd);
+
+  let text = '';
+  let iconClass = 'fas fa-chart-line';
+
+  if(lastMonth === 0 && thisMonth === 0){
+    el.classList.add('hidden');
+    return;
+  }
+
+  if(lastMonth === 0){
+    text = `You've saved <strong>${fmtNaira(thisMonth)}</strong> this month`;
+    iconClass = 'fas fa-seedling';
+  } else {
+    const change = lastMonth > 0
+      ? Math.round(((thisMonth - lastMonth) / lastMonth) * 100)
+      : 0;
+    const sign = change >= 0 ? '+' : '';
+    const cls = change >= 0 ? 'up' : 'down';
+    const arrow = change >= 0 ? '↑' : '↓';
+    text = `You saved <strong>${fmtNaira(thisMonth)}</strong> this month · <span class="${cls}">${arrow} ${sign}${change}%</span> vs last month`;
+    iconClass = change >= 0 ? 'fas fa-arrow-trend-up' : 'fas fa-arrow-trend-down';
+  }
+
+  el.innerHTML = `<i class="${iconClass}"></i><span>${text}</span>`;
+  el.classList.remove('hidden');
+}
+
+/* ============================================================
+   SAVINGS GOAL CARD
+   ============================================================ */
+function renderGoalCard(){
+  const card = document.getElementById('goalCard');
+  const content = document.getElementById('goalContent');
+  if(!card || !content) return;
+
+  if(!state.goal.enabled || state.goal.target <= 0){
+    card.classList.add('hidden');
+    return;
+  }
+  card.classList.remove('hidden');
+
+  const totalDeposit = state.savings
+    .filter(s => s.type === 'deposit')
+    .reduce((sum, s) => sum + (Number(s.amount)||0), 0);
+  const totalWithdraw = state.savings
+    .filter(s => s.type === 'withdrawal')
+    .reduce((sum, s) => sum + (Number(s.amount)||0), 0);
+  const current = totalDeposit - totalWithdraw;
+
+  const target = state.goal.target;
+  const pctRaw = (current / target) * 100;
+  const pct = Math.round(pctRaw);
+  const barWidth = Math.min(Math.max(pctRaw, 0), 100);
+  const remaining = target - current;
+  const complete = current >= target;
+
+  const labelHtml = state.goal.label
+    ? `<div class="goal-label"><i class="fas fa-tag"></i>${esc(state.goal.label)}</div>`
+    : '';
+
+  const remainingHtml = complete
+    ? `<div class="goal-complete-badge"><i class="fas fa-check-circle"></i> Goal reached!</div>`
+    : `<div class="goal-remaining"><strong>${fmtNaira(remaining)}</strong> to go</div>`;
+
+  content.innerHTML = `
+    ${labelHtml}
+    <div class="goal-progress">
+      <div class="goal-progress-bar">
+        <div class="goal-progress-fill" style="width:${barWidth}%"></div>
+      </div>
+      <div class="goal-numbers">
+        <div class="goal-amount">
+          ${fmtNaira(current)}<small>of ${fmtNaira(target)}</small>
+        </div>
+        <div class="goal-pct ${complete ? 'complete' : ''}">${pct}%</div>
+      </div>
+    </div>
+    ${remainingHtml}
+  `;
+
+  // Rebind gear
+  const gear = document.getElementById('goalEditBtn');
+  if(gear){
+    gear.onclick = openGoalSettingsModal;
+  }
 }
 
 function renderLedger(){
@@ -602,11 +737,16 @@ function renderLedger(){
     const noteHtml = s.note
       ? `<div class="lr-note">${esc(s.note)}</div>`
       : `<div class="lr-note empty">No note</div>`;
+
+    const tagHtml = (!isDep && s.tag)
+      ? `<span class="ledger-tag tag-${s.tag.toLowerCase()}">${esc(s.tag)}</span>`
+      : '';
+
     return `<div class="ledger-row ${isDep?'deposit':'withdrawal'}" data-id="${s.id}">
       <div class="lr-icon"><i class="fas fa-arrow-${isDep?'down':'up'}"></i></div>
       <div class="lr-main">
         ${noteHtml}
-        <div class="lr-sub">${shortDate(s.date)}</div>
+        <div class="lr-sub">${shortDate(s.date)}${tagHtml}</div>
       </div>
       <div class="lr-amt num">${isDep?'+':'-'}${fmtNaira(s.amount)}</div>
     </div>`;
@@ -875,6 +1015,7 @@ function deleteEntry(id){
    ============================================================ */
 function openSavingsModal(type){
   const isDep = type === 'deposit';
+  let selectedTag = null;
   openModal(`
     <div class="modal-header">
       <h2>${isDep ? 'Add Deposit' : 'Record Withdrawal'}</h2>
@@ -889,10 +1030,22 @@ function openSavingsModal(type){
       </div>
     </div>
 
-    <div class="form-group">
+       <div class="form-group">
       <label>Note <span style="text-transform:none;font-weight:500;color:var(--muted)">(optional)</span></label>
       <input type="text" id="sNote" placeholder="${isDep ? 'e.g. Monthly savings' : 'What did you use it for?'}" maxlength="120">
     </div>
+
+    ${!isDep ? `
+      <div class="form-group">
+        <label>Reason <span style="text-transform:none;font-weight:500;color:var(--muted)">(optional)</span></label>
+        <div class="tag-picker" id="tagPicker">
+          <button type="button" class="tag-pick" data-tag="Emergency"><i class="fas fa-bolt"></i> Emergency</button>
+          <button type="button" class="tag-pick" data-tag="Planned"><i class="fas fa-calendar-check"></i> Planned</button>
+          <button type="button" class="tag-pick" data-tag="Temptation"><i class="fas fa-candy-cane"></i> Temptation</button>
+          <button type="button" class="tag-pick" data-tag="Other"><i class="fas fa-circle"></i> Other</button>
+        </div>
+      </div>
+    ` : ''}
 
     <div class="form-group">
       <label>Date</label>
@@ -904,6 +1057,31 @@ function openSavingsModal(type){
     </button>
   `);
 
+  // Quick-add chips (deposit only)
+  modal.querySelectorAll('[data-quick]').forEach(chip => {
+    chip.onclick = () => {
+      const amtInput = document.getElementById('sAmount');
+      const v = chip.dataset.quick;
+      amtInput.value = v;
+      amtInput.focus();
+    };
+  });
+
+  // Tag picker (withdrawal only)
+  modal.querySelectorAll('.tag-pick').forEach(btn => {
+    btn.onclick = () => {
+      const tag = btn.dataset.tag;
+      if(selectedTag === tag){
+        selectedTag = null;
+        btn.classList.remove('active');
+      } else {
+        selectedTag = tag;
+        modal.querySelectorAll('.tag-pick').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    };
+  });
+
   document.getElementById('sSaveBtn').onclick = () => {
     const amount = Number(document.getElementById('sAmount').value);
     if(!amount || amount <= 0){ toast('Enter an amount'); return; }
@@ -914,6 +1092,10 @@ function openSavingsModal(type){
       amount: amount,
       note: document.getElementById('sNote').value.trim()
     };
+    // Attach tag if withdrawal and picked
+    if(!isDep && selectedTag){
+      data.tag = selectedTag;
+    }
     state.savings.unshift(data);
     saveState();
     closeModal();
@@ -936,6 +1118,7 @@ function openLedgerDetail(id){
     <div class="detail-kv"><span class="kv-label">Amount</span><span class="kv-val num" style="color:${isDep?'var(--emerald)':'var(--red)'}">${isDep?'+':'-'}${fmtNairaCents(s.amount)}</span></div>
     <div class="detail-kv"><span class="kv-label">Date</span><span class="kv-val">${niceDate(s.date)}</span></div>
     <div class="detail-kv"><span class="kv-label">Note</span><span class="kv-val">${esc(s.note || '—')}</span></div>
+    ${(!isDep && s.tag) ? `<div class="detail-kv"><span class="kv-label">Reason</span><span class="kv-val"><span class="ledger-tag tag-${s.tag.toLowerCase()}">${esc(s.tag)}</span></span></div>` : ''}
 
     ${ui.viewOnly ? '' : `
       <button type="button" class="btn btn-danger" id="ldDeleteBtn" style="margin-top:16px">Delete</button>
@@ -1640,6 +1823,81 @@ function openBudgetSettingsModal(){
 }
 
 /* ============================================================
+   SAVINGS GOAL SETTINGS MODAL
+   ============================================================ */
+function openGoalSettingsModal(){
+  const isOn = state.goal.enabled;
+  const label = state.goal.label || '';
+  const target = state.goal.target || '';
+
+  openModal(`
+    <div class="modal-header">
+      <h2>Savings Goal</h2>
+      <button class="close-x">&times;</button>
+    </div>
+
+    <div style="font-size:.85rem;color:var(--muted);line-height:1.55;margin-bottom:20px">
+      Set a target amount and watch your progress fill up.
+    </div>
+
+    <div class="budget-toggle-row" style="border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:16px">
+      <div>
+        <div class="label" style="font-size:.95rem">Enable savings goal</div>
+        <div class="sub">Shows a goal card on the Savings tab</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="goalEnabledToggle" ${isOn ? 'checked' : ''}>
+        <span class="switch-track"></span>
+      </label>
+    </div>
+
+    <div id="goalSettingsBody" class="${isOn ? '' : 'hidden'}">
+
+      <div class="form-group">
+        <label>Goal name <span style="text-transform:none;font-weight:500;color:var(--muted)">(optional)</span></label>
+        <input type="text" id="goalLabelInput" placeholder="e.g. New Laptop" maxlength="40" value="${esc(label)}">
+      </div>
+
+      <div class="form-group">
+        <label>Target amount</label>
+        <div class="amount-wrap">
+          <span>${CURRENCY}</span>
+          <input type="number" id="goalTargetInput" inputmode="decimal" placeholder="0" value="${target}">
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-primary" id="saveGoalBtn" style="margin-top:20px">
+      Save goal
+    </button>
+  `);
+
+  const toggle = document.getElementById('goalEnabledToggle');
+  const body = document.getElementById('goalSettingsBody');
+
+  toggle.onchange = () => {
+    state.goal.enabled = toggle.checked;
+    saveState();
+    body.classList.toggle('hidden', !toggle.checked);
+    renderSavings();
+  };
+
+  document.getElementById('saveGoalBtn').onclick = () => {
+    const labelVal = document.getElementById('goalLabelInput').value.trim();
+    const targetVal = Number(document.getElementById('goalTargetInput').value) || 0;
+
+    state.goal.enabled = toggle.checked;
+    state.goal.label = labelVal;
+    state.goal.target = targetVal;
+
+    saveState();
+    closeModal();
+    render();
+    toast('Goal saved');
+  };
+}
+
+/* ============================================================
    DRIVE — INIT + AUTH
    ============================================================ */
 async function initDrive(){
@@ -2018,9 +2276,13 @@ function bindEvents(){
     closeMenu();
     openBudgetSettingsModal();
   };
-  document.getElementById('settingsBtn').onclick = () => {
+    document.getElementById('settingsBtn').onclick = () => {
     closeMenu();
     openSettingsModal();
+  };
+  document.getElementById('goalBtn').onclick = () => {
+    closeMenu();
+    openGoalSettingsModal();
   };
 
    // Spend card header collapse toggle (whole header is clickable)

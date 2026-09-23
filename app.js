@@ -1616,13 +1616,18 @@ function openSettingsModal(){
       <input type="file" id="importFile" accept="application/json,.json" class="hidden">
     </div>
 
-    <!-- Print -->
+       <!-- Print -->
     <div class="settings-block">
-      <h4>Statement</h4>
-      <div class="blk-sub">Generate a monthly PDF statement</div>
-      <button type="button" class="btn btn-secondary" id="printBtn" style="margin-top:0">
-        <i class="fas fa-file-pdf"></i> Generate statement
-      </button>
+      <h4>Statements</h4>
+      <div class="blk-sub">Generate a PDF statement for the current month</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn btn-secondary" id="printBtn" style="margin-top:0;flex:1;min-width:140px">
+          <i class="fas fa-file-pdf"></i> Budget statement
+        </button>
+        <button type="button" class="btn btn-secondary" id="printSavingsBtn" style="margin-top:0;flex:1;min-width:140px">
+          <i class="fas fa-file-pdf"></i> Savings statement
+        </button>
+      </div>
     </div>
 
     <!-- Danger zone -->
@@ -1711,11 +1716,20 @@ function openSettingsModal(){
     };
     reader.readAsText(file);
   };
-
-  // Print
+   
+  // Print — budget statement
   document.getElementById('printBtn').onclick = () => {
     closeModal();
+    const pv = document.getElementById('printView');
+    pv.className = 'print-view';
     buildPrintView(ui.year, ui.month);
+    setTimeout(() => window.print(), 300);
+  };
+
+  // Print — savings statement
+  document.getElementById('printSavingsBtn').onclick = () => {
+    closeModal();
+    buildSavingsStatement(ui.year, ui.month);
     setTimeout(() => window.print(), 300);
   };
 
@@ -2196,15 +2210,166 @@ function buildPrintView(year, month){
       </table>
     </div>
 
-    <div class="pv-footer">
+       <div class="pv-footer">
       Generated on ${new Date().toLocaleString()} · CjayBudgets
     </div>
   `;
 }
 
 /* ============================================================
-   VIEW-ONLY MODE
+   SAVINGS STATEMENT (bank-style PDF)
    ============================================================ */
+function buildSavingsStatement(year, month){
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
+
+  // Filter the month's activity
+  const monthSavings = state.savings.filter(s => {
+    const d = parseDate(s.date);
+    return d && d >= monthStart && d <= monthEnd;
+  }).sort((a,b) => (a.date||'').localeCompare(b.date||''));
+
+  const deposits = monthSavings.filter(s => s.type === 'deposit');
+  const withdrawals = monthSavings.filter(s => s.type === 'withdrawal');
+
+  const depositTotal = deposits.reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
+  const withdrawalTotal = withdrawals.reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
+  const netChange = depositTotal - withdrawalTotal;
+
+  // Opening balance = everything before this month
+  const openingBalance = state.savings
+    .filter(s => {
+      const d = parseDate(s.date);
+      return d && d < monthStart;
+    })
+    .reduce((sum, s) => sum + (s.type === 'deposit' ? 1 : -1) * (Number(s.amount) || 0), 0);
+
+  const closingBalance = openingBalance + netChange;
+
+  // Tag breakdown for withdrawals
+  const tagTotals = {};
+  withdrawals.forEach(s => {
+    const k = s.tag || 'Untagged';
+    tagTotals[k] = (tagTotals[k] || 0) + (Number(s.amount) || 0);
+  });
+  const tagRows = Object.entries(tagTotals).sort((a,b) => b[1] - a[1]);
+
+  const pv = document.getElementById('printView');
+  pv.className = 'print-view pv-statement';
+  pv.innerHTML = `
+    <div class="pv-header">
+      <div>
+        <h1>CjayBudgets</h1>
+        <div class="pv-sub">Savings Statement · ${MONTHS[month]} ${year}</div>
+      </div>
+      <div class="pv-meta">
+        Generated<br>
+        ${new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'})}
+      </div>
+    </div>
+
+    <div class="pv-balance-box">
+      <div>
+        <div class="pbb-label">Opening Balance</div>
+        <div class="pbb-value">${fmtNaira(openingBalance)}</div>
+      </div>
+      <div>
+        <div class="pbb-label">Net Change</div>
+        <div class="pbb-value ${netChange >= 0 ? 'positive' : 'negative'}">
+          ${netChange >= 0 ? '+' : ''}${fmtNaira(netChange)}
+        </div>
+      </div>
+      <div>
+        <div class="pbb-label">Closing Balance</div>
+        <div class="pbb-value">${fmtNaira(closingBalance)}</div>
+      </div>
+    </div>
+
+    <div class="pv-section">
+      <h3>Deposits</h3>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:22%">Date</th>
+            <th>Note</th>
+            <th style="text-align:right;width:25%">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${deposits.length ? deposits.map(s => `
+            <tr>
+              <td>${esc(s.date)}</td>
+              <td>${esc(s.note || '—')}</td>
+              <td class="amt positive">+${fmtNaira(s.amount)}</td>
+            </tr>
+          `).join('') : '<tr><td colspan="3" style="text-align:center;color:#999;padding:20px">No deposits this month</td></tr>'}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2">Total Deposits</td>
+            <td class="amt positive">+${fmtNaira(depositTotal)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="pv-section">
+      <h3>Withdrawals</h3>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:22%">Date</th>
+            <th>Note</th>
+            <th style="width:20%">Reason</th>
+            <th style="text-align:right;width:22%">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${withdrawals.length ? withdrawals.map(s => `
+            <tr>
+              <td>${esc(s.date)}</td>
+              <td>${esc(s.note || '—')}</td>
+              <td>${esc(s.tag || '—')}</td>
+              <td class="amt negative">-${fmtNaira(s.amount)}</td>
+            </tr>
+          `).join('') : '<tr><td colspan="4" style="text-align:center;color:#999;padding:20px">No withdrawals this month</td></tr>'}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">Total Withdrawals</td>
+            <td class="amt negative">-${fmtNaira(withdrawalTotal)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    ${tagRows.length ? `
+      <div class="pv-section">
+        <h3>Withdrawal Breakdown</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Reason</th>
+              <th style="text-align:right;width:30%">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tagRows.map(([tag, amt]) => `
+              <tr>
+                <td>${esc(tag)}</td>
+                <td class="amt negative">-${fmtNaira(amt)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    ` : ''}
+
+    <div class="pv-footer">
+      CjayBudgets · Personal Finance Tracker
+    </div>
+  `;
+}
 function enableViewOnly(){
   ui.viewOnly = true;
   document.getElementById('viewBadge').classList.remove('hidden');

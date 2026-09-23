@@ -441,6 +441,11 @@ body[data-tab="savings"] .brand-logo{
   padding:2px 4px;
   border-radius:10px;
   transition:background .15s;
+  outline:none;
+}
+.spend-card-header:focus,
+.spend-card-header:focus-visible{
+  outline:none;
 }
 .spend-card-header:hover{
   background:var(--card-2);

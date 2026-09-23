@@ -1027,7 +1027,7 @@ function openSavingsModal(type){
       <button class="close-x">&times;</button>
     </div>
 
-    <div class="form-group">
+      <div class="form-group">
       <label>Amount</label>
       <div class="amount-wrap">
         <span>${CURRENCY}</span>
@@ -1035,7 +1035,16 @@ function openSavingsModal(type){
       </div>
     </div>
 
-       <div class="form-group">
+    ${isDep ? `
+      <div class="quick-add-row">
+        <button type="button" class="quick-add-chip" data-quick="1000">₦1k</button>
+        <button type="button" class="quick-add-chip" data-quick="5000">₦5k</button>
+        <button type="button" class="quick-add-chip" data-quick="10000">₦10k</button>
+        <button type="button" class="quick-add-chip" data-quick="20000">₦20k</button>
+      </div>
+    ` : ''}
+
+    <div class="form-group">
       <label>Note <span style="text-transform:none;font-weight:500;color:var(--muted)">(optional)</span></label>
       <input type="text" id="sNote" placeholder="${isDep ? 'e.g. Monthly savings' : 'What did you use it for?'}" maxlength="120">
     </div>
@@ -1842,6 +1851,121 @@ function openBudgetSettingsModal(){
 }
 
 /* ============================================================
+   SUMMARY DETAIL MODAL (Income / Expenses drill-down)
+   ============================================================ */
+function openSummaryDetailModal(type){
+  // type = 'Income' or 'Expense'
+  const isIncome = type === 'Income';
+
+  // Entries in the current period, filtered by type
+  const period = entriesInPeriod();
+  const items = period
+    .filter(e => e.type === type)
+    .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  const total = items.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+  // Period label
+  const periodLabel = periodLabelText();
+
+  // Render each entry row (reuses the main list styles)
+  const rowsHtml = items.length
+    ? items.map(e => {
+        const amtSign = isIncome ? '+' : '-';
+        const cls = isIncome ? 'income' : 'expense';
+        const icon = isIncome ? 'arrow-down' : 'arrow-up';
+        return `<div class="entry-row ${cls}" data-detail-id="${e.id}">
+          <div class="er-icon"><i class="fas fa-${icon}"></i></div>
+          <div class="er-main">
+            <div class="er-desc">${esc(e.description || (isIncome ? 'Income' : 'Expense'))}</div>
+            <div class="er-cat">
+              ${esc(e.category || 'Uncategorized')}
+              ${e.recurring ? '<span class="recur-dot"></span>Recurring' : ''}
+            </div>
+          </div>
+          <div class="er-amt num">${amtSign}${fmtNaira(e.amount)}</div>
+        </div>`;
+      }).join('')
+    : `<div class="summary-modal-empty">No ${type.toLowerCase()} entries this period.</div>`;
+
+  // For expenses, embed the spending breakdown
+  let breakdownHtml = '';
+  if(!isIncome && items.length){
+    const totals = {};
+    items.forEach(e => {
+      const k = (e.category || 'Uncategorized').trim();
+      totals[k] = (totals[k] || 0) + (Number(e.amount) || 0);
+    });
+    const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+    const maxAmt = sorted[0][1];
+    const COLORS = ['#2e7dd1','#0e7a5a','#e0a526','#d3453f','#8b5cf6',
+                    '#06b6d4','#f97316','#ec4899','#84cc16','#6366f1'];
+
+    const breakdownRows = sorted.map(([cat, amt], i) => {
+      const pctWidth = (amt / maxAmt) * 100;
+      const pctOfTotal = Math.round((amt / total) * 100);
+      return `
+        <div class="bar-row">
+          <div class="bar-label">
+            <span class="bar-name">${esc(cat)} · ${pctOfTotal}%</span>
+            <span class="bar-amt num">${fmtNaira(amt)}</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${pctWidth}%;background:${COLORS[i % COLORS.length]}"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    breakdownHtml = `
+      <button type="button" class="summary-breakdown-toggle" id="breakdownToggle">
+        <i class="fas fa-chart-bar"></i> See spending breakdown
+      </button>
+      <div class="summary-breakdown-content" id="breakdownContent">
+        <div class="spend-bars-view">${breakdownRows}</div>
+      </div>
+    `;
+  }
+
+  openModal(`
+    <div class="modal-header">
+      <h2>${type} · ${esc(periodLabel)}</h2>
+      <button class="close-x">&times;</button>
+    </div>
+
+    <div class="summary-modal-total ${isIncome ? 'income' : 'expense'}">
+      <span class="smt-label">Total</span>
+      <span class="smt-value">${isIncome ? '+' : '-'}${fmtNaira(total)}</span>
+    </div>
+
+    <div class="summary-modal-section-label">Entries</div>
+    <div class="summary-modal-entries">${rowsHtml}</div>
+
+    ${breakdownHtml}
+  `);
+
+  // Tap an entry → open its detail modal
+  modal.querySelectorAll('[data-detail-id]').forEach(row => {
+    row.onclick = () => {
+      const id = row.dataset.detailId;
+      // Close this modal first, then open the entry detail
+      closeModal();
+      setTimeout(() => openEntryDetail(id), 100);
+    };
+  });
+
+  // Breakdown toggle (expenses only)
+  const breakdownBtn = document.getElementById('breakdownToggle');
+  if(breakdownBtn){
+    breakdownBtn.onclick = () => {
+      const content = document.getElementById('breakdownContent');
+      const expanded = content.classList.toggle('expanded');
+      breakdownBtn.innerHTML = expanded
+        ? '<i class="fas fa-chevron-up"></i> Hide breakdown'
+        : '<i class="fas fa-chart-bar"></i> See spending breakdown';
+    };
+  }
+}
+
+/* ============================================================
    SAVINGS GOAL SETTINGS MODAL
    ============================================================ */
 function openGoalSettingsModal(){
@@ -2402,8 +2526,12 @@ function bindEvents(){
     b.onclick = () => switchTab(b.dataset.tab);
   });
 
-  // Top bar — theme stays one-tap
+   // Top bar — theme stays one-tap
   document.getElementById('themeBtn').onclick = toggleTheme;
+
+  // Clickable summary cards (Income / Expenses)
+  document.getElementById('sumIncomeCard').onclick = () => openSummaryDetailModal('Income');
+  document.getElementById('sumExpenseCard').onclick = () => openSummaryDetailModal('Expense');
 
   // Hamburger menu
   const menuBtn = document.getElementById('menuBtn');

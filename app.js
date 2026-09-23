@@ -200,15 +200,40 @@ function toggleTheme(){
 }
 
 function switchTab(tab){
+  const prev = ui.activeTab;
+  if(prev === tab) return;
+
   ui.activeTab = tab;
   document.body.dataset.tab = tab;
+
   document.querySelectorAll('.tab-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.tab === tab));
-  document.getElementById('budgetTab').classList.toggle('active', tab === 'budget');
-  document.getElementById('savingsTab').classList.toggle('active', tab === 'savings');
+
+  const budgetEl = document.getElementById('budgetTab');
+  const savingsEl = document.getElementById('savingsTab');
+
+  // Determine slide direction: budget -> savings = from right, savings -> budget = from left
+  const fromRight = prev === 'budget' && tab === 'savings';
+  const dirClass = fromRight ? 'slide-from-right' : 'slide-from-left';
+
+  // Reset animation classes
+  [budgetEl, savingsEl].forEach(el => {
+    el.classList.remove('slide-from-right', 'slide-from-left');
+  });
+
+  budgetEl.classList.toggle('active', tab === 'budget');
+  savingsEl.classList.toggle('active', tab === 'savings');
+
+  // Apply animation to the newly active tab
+  const newActive = tab === 'budget' ? budgetEl : savingsEl;
+  // Force reflow so animation restarts even when the same class toggles
+  void newActive.offsetWidth;
+  newActive.classList.add(dirClass);
+
   document.getElementById('brandLogo').innerHTML = tab === 'budget'
     ? '<i class="fas fa-wallet"></i>'
     : '<i class="fas fa-piggy-bank"></i>';
+
   updateFab();
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -304,17 +329,20 @@ function renderSpend(period){
   const card = wrap.closest('.spend-card');
   const expenses = period.filter(e=>e.type==='Expense');
 
-  // Apply collapse state to the card
+    // Apply collapse state to the card
   if(card){
     card.classList.toggle('expanded', !ui.spendCollapsed);
+    const header = card.querySelector('#spendHeaderBtn');
+    if(header){
+      header.setAttribute('aria-expanded', String(!ui.spendCollapsed));
+    }
   }
 
-  if(!expenses.length){
+   if(!expenses.length){
     wrap.innerHTML = '<div class="spend-empty">No expenses logged this period yet.</div>';
-    // Also update the compact summary to reflect empty state
     const compact = card ? card.querySelector('.spend-compact-text') : null;
     if(compact){
-      compact.innerHTML = 'No spending yet this period';
+      compact.textContent = 'No spending yet';
     }
     return;
   }
@@ -327,107 +355,35 @@ function renderSpend(period){
    const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
   const total = sorted.reduce((s,[,v])=>s+v,0);
 
-  // Update compact summary (shown when card is collapsed)
+    // Update compact summary (shown when card is collapsed, next to title)
   if(card){
     const compact = card.querySelector('.spend-compact-text');
     if(compact){
       const catCount = sorted.length;
-      compact.innerHTML = `<strong>${fmtNaira(total)}</strong> across ${catCount} categor${catCount===1?'y':'ies'}`;
+      compact.innerHTML = `<strong>${fmtNaira(total)}</strong> · ${catCount} categor${catCount===1?'y':'ies'}`;
     }
   }
-
   const COLORS = ['#2e7dd1','#0e7a5a','#e0a526','#d3453f','#8b5cf6',
                   '#06b6d4','#f97316','#ec4899','#84cc16','#6366f1'];
 
-  const isBars = ui.spendView === 'bars';
-
-  // Header with toggle
-  const header = `
-    <div class="spend-header">
-      <div class="spend-toggle">
-        <button type="button" data-spend-view="donut" class="${!isBars?'active':''}">
-          <i class="fas fa-chart-pie"></i> Donut
-        </button>
-        <button type="button" data-spend-view="bars" class="${isBars?'active':''}">
-          <i class="fas fa-chart-bar"></i> Bars
-        </button>
-      </div>
-    </div>`;
-
-  let bodyHtml = '';
-
-  if(isBars){
-    // Horizontal bar chart view
-    const maxAmt = sorted[0][1];
-    const rows = sorted.map(([cat, amt], i) => {
-      const pctWidth = (amt / maxAmt) * 100;
-      const pctOfTotal = Math.round((amt / total) * 100);
-      return `
-        <div class="bar-row">
-          <div class="bar-label">
-            <span class="bar-name">${esc(cat)} · ${pctOfTotal}%</span>
-            <span class="bar-amt num">${fmtNaira(amt)}</span>
-          </div>
-          <div class="bar-track">
-            <div class="bar-fill" style="width:${pctWidth}%;background:${COLORS[i % COLORS.length]}"></div>
-          </div>
-        </div>`;
-    }).join('');
-    bodyHtml = `<div class="spend-bars-view">${rows}</div>`;
-  } else {
-    // Donut + enhanced category list
-    const R = 60, C = 2 * Math.PI * R;
-    let offset = 0;
-    const arcs = sorted.map(([cat, amt], i) => {
-      const frac = amt / total;
-      const len = C * frac;
-      const seg = `<circle cx="70" cy="70" r="${R}"
-          fill="none" stroke="${COLORS[i % COLORS.length]}" stroke-width="18"
-          stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}"
-          stroke-dashoffset="${(-offset).toFixed(2)}"/>`;
-      offset += len;
-      return seg;
-    }).join('');
-
-    const donut = `
-      <div class="donut-wrap">
-        <svg viewBox="0 0 140 140">${arcs}</svg>
-        <div class="donut-center">
-          <div class="dc-label">Total spent</div>
-          <div class="dc-val num">${fmtNaira(total)}</div>
+   // Bars-only view (donut removed)
+  const maxAmt = sorted[0][1];
+  const rows = sorted.map(([cat, amt], i) => {
+    const pctWidth = (amt / maxAmt) * 100;
+    const pctOfTotal = Math.round((amt / total) * 100);
+    return `
+      <div class="bar-row">
+        <div class="bar-label">
+          <span class="bar-name">${esc(cat)} · ${pctOfTotal}%</span>
+          <span class="bar-amt num">${fmtNaira(amt)}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pctWidth}%;background:${COLORS[i % COLORS.length]}"></div>
         </div>
       </div>`;
+  }).join('');
 
-    const rows = sorted.slice(0,6).map(([cat, amt], i) => {
-      const pctOfTotal = Math.round((amt / total) * 100);
-      const barWidth = (amt / sorted[0][1]) * 100;
-      return `
-        <div class="spend-row">
-          <div class="spend-row-top">
-            <span class="spend-dot" style="background:${COLORS[i % COLORS.length]}"></span>
-            <span class="spend-name">${esc(cat)}</span>
-            <span class="spend-pct">${pctOfTotal}%</span>
-            <span class="spend-amt num">${fmtNaira(amt)}</span>
-          </div>
-          <div class="spend-row-bar">
-            <div style="width:${barWidth}%;background:${COLORS[i % COLORS.length]}"></div>
-          </div>
-        </div>`;
-    }).join('');
-
-    bodyHtml = `<div class="spend-grid">${donut}<div class="spend-bars">${rows}</div></div>`;
-  }
-
-  wrap.innerHTML = header + bodyHtml;
-
-  // Bind toggle
-  wrap.querySelectorAll('[data-spend-view]').forEach(btn => {
-    btn.onclick = () => {
-      ui.spendView = btn.dataset.spendView;
-      localStorage.setItem('cjay_budgets_spend_view', ui.spendView);
-      renderSpend(period);
-    };
-  });
+  wrap.innerHTML = `<div class="spend-bars-view">${rows}</div>`;
 }
 /* ============================================================
    MONTHLY BUDGET TRACKER
@@ -2067,16 +2023,16 @@ function bindEvents(){
     openSettingsModal();
   };
 
-  // Spend card collapse toggle
+   // Spend card header collapse toggle (whole header is clickable)
   document.addEventListener('click', (e) => {
-    const seeMore = e.target.closest('.spend-see-more');
-    if(!seeMore) return;
-    e.stopPropagation();
+    const header = e.target.closest('#spendHeaderBtn');
+    if(!header) return;
     ui.spendCollapsed = !ui.spendCollapsed;
     try{
       localStorage.setItem('cjay_budgets_spend_collapsed', String(ui.spendCollapsed));
     }catch(err){}
-    // Rerender spend card only
+    // Update aria + rerender
+    header.setAttribute('aria-expanded', String(!ui.spendCollapsed));
     const period = entriesInPeriod();
     renderSpend(period);
   });

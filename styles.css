@@ -763,6 +763,28 @@ body[data-tab="savings"] .brand-logo{
 .savings-hero .sh-sub.up{color:#c9f0d4}
 .savings-hero .sh-sub.down{color:#ffc8c4}
 
+/* Savings summary line (momentum / month-over-month) */
+.savings-summary{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:2px 6px;
+  font-size:.82rem;
+  color:var(--muted);
+  font-weight:500;
+  line-height:1.5;
+}
+.savings-summary i{
+  color:var(--accent);
+  font-size:.78rem;
+}
+.savings-summary strong{
+  color:var(--text);
+  font-weight:700;
+}
+.savings-summary .up{color:var(--green);font-weight:700}
+.savings-summary .down{color:var(--red);font-weight:700}
+
 /* Action buttons side by side */
 .savings-actions{
   display:grid;grid-template-columns:1fr 1fr;gap:10px;
@@ -816,6 +838,139 @@ body[data-tab="savings"] .brand-logo{
 }
 .ledger-row.deposit .lr-amt{color:var(--emerald)}
 .ledger-row.withdrawal .lr-amt{color:var(--red)}
+
+/* ============================================================
+   SAVINGS GOAL CARD
+   ============================================================ */
+.goal-card{
+  padding:18px 20px;
+}
+.goal-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:14px;
+}
+.goal-header h3{
+  font-size:.78rem;
+  font-weight:700;
+  color:var(--text-soft);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.goal-header h3 i{
+  color:var(--emerald);
+  font-size:.9rem;
+}
+
+/* Progress bar */
+.goal-progress{
+  margin-bottom:14px;
+}
+.goal-progress-bar{
+  height:12px;
+  border-radius:999px;
+  background:var(--card-2);
+  overflow:hidden;
+  margin-bottom:10px;
+  position:relative;
+}
+.goal-progress-fill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,var(--emerald),var(--emerald-deep));
+  transition:width .5s ease;
+  position:relative;
+}
+.goal-progress-fill::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
+  border-radius:999px;
+  animation:goalShimmer 2.5s ease-in-out infinite;
+}
+@keyframes goalShimmer{
+  0%,100%{transform:translateX(-100%)}
+  50%{transform:translateX(100%)}
+}
+
+/* Numbers row */
+.goal-numbers{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:12px;
+  margin-bottom:4px;
+}
+.goal-amount{
+  font-family:'Sora',sans-serif;
+  font-weight:800;
+  font-size:1.15rem;
+  color:var(--text);
+  letter-spacing:-.02em;
+}
+.goal-amount small{
+  font-family:'Inter',sans-serif;
+  font-weight:500;
+  font-size:.78rem;
+  color:var(--muted);
+  margin-left:6px;
+}
+.goal-pct{
+  font-family:'Sora',sans-serif;
+  font-weight:800;
+  font-size:.9rem;
+  color:var(--emerald);
+}
+.goal-pct.complete{color:var(--green)}
+
+.goal-remaining{
+  font-size:.78rem;
+  color:var(--muted);
+  font-weight:600;
+  margin-bottom:8px;
+}
+.goal-remaining strong{
+  color:var(--text);
+  font-weight:700;
+}
+
+/* Goal label (user-named, e.g. "New Laptop") */
+.goal-label{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:var(--emerald-soft);
+  color:var(--emerald);
+  font-size:.72rem;
+  font-weight:700;
+  padding:5px 12px;
+  border-radius:999px;
+  margin-bottom:12px;
+}
+.goal-label i{font-size:.68rem}
+
+/* Goal complete celebration */
+.goal-complete-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:var(--green-soft);
+  color:var(--green);
+  font-size:.72rem;
+  font-weight:700;
+  padding:5px 12px;
+  border-radius:999px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  margin-top:8px;
+}
 
 /* ============================================================
    EMPTY STATE
@@ -962,6 +1117,87 @@ body[data-tab="savings"] .brand-logo{
 .seg-control button.active.seg-expense{color:var(--red)}
 .seg-control button.active.seg-deposit{color:var(--emerald)}
 .seg-control button.active.seg-withdrawal{color:var(--red)}
+
+/* Quick-add amount chips (inside deposit/withdrawal modal) */
+.quick-add-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:-4px;
+  margin-bottom:14px;
+}
+.quick-add-chip{
+  border:1px solid var(--line);
+  background:var(--card);
+  color:var(--text-soft);
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:.78rem;
+  font-weight:700;
+  cursor:pointer;
+  transition:.15s;
+  font-family:inherit;
+  font-variant-numeric:tabular-nums;
+}
+.quick-add-chip:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:var(--accent-soft);
+}
+.quick-add-chip:active{
+  transform:scale(.96);
+}
+
+/* Withdrawal tag picker */
+.tag-picker{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:4px;
+}
+.tag-pick{
+  border:1px solid var(--line);
+  background:var(--card);
+  color:var(--text-soft);
+  padding:7px 14px;
+  border-radius:999px;
+  font-size:.78rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:.15s;
+  font-family:inherit;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.tag-pick:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+}
+.tag-pick.active{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+}
+.tag-pick i{font-size:.7rem}
+
+/* Tag badge in ledger rows */
+.ledger-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  font-size:.65rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  padding:3px 8px;
+  border-radius:999px;
+  margin-left:6px;
+}
+.ledger-tag.tag-emergency{background:var(--red-soft);color:var(--red)}
+.ledger-tag.tag-planned{background:var(--emerald-soft);color:var(--emerald)}
+.ledger-tag.tag-temptation{background:var(--gold-soft);color:var(--gold)}
+.ledger-tag.tag-other{background:var(--card-2);color:var(--text-soft)}
 
 /* Recurring chips (inside Add Entry modal) */
 .chip-row{
@@ -1137,8 +1373,102 @@ body[data-tab="savings"] .brand-logo{
   @page{margin:1.5cm}
 }
 
-.print-view{display:none;font-family:'Inter',sans-serif;color:#000;background:#fff;padding:20px}
-.print-view .pv-header{
+.print-view{display:none;font-family:'Inter',sans-serif;color:#000;background:#fff;padding:24px}
+
+/* Bank-style statement refinements */
+.print-view.pv-statement .pv-header{
+  text-align:left;
+  border-bottom:2px solid #000;
+  padding-bottom:16px;
+  margin-bottom:24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+}
+.print-view.pv-statement .pv-header h1{
+  font-size:1.4rem;
+  margin-bottom:2px;
+}
+.print-view.pv-statement .pv-header .pv-sub{
+  font-size:.85rem;
+  color:#555;
+}
+.print-view.pv-statement .pv-header .pv-meta{
+  text-align:right;
+  font-size:.75rem;
+  color:#555;
+  line-height:1.5;
+}
+.print-view.pv-statement .pv-balance-box{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:14px;
+  padding:18px;
+  background:#f7f9fc;
+  border-radius:10px;
+  margin-bottom:26px;
+}
+.print-view.pv-statement .pv-balance-box > div{
+  text-align:center;
+}
+.print-view.pv-statement .pv-balance-box .pbb-label{
+  font-size:.65rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  font-weight:700;
+  color:#666;
+  margin-bottom:6px;
+}
+.print-view.pv-statement .pv-balance-box .pbb-value{
+  font-family:'Sora',sans-serif;
+  font-size:1.15rem;
+  font-weight:800;
+}
+.print-view.pv-statement .pv-balance-box .pbb-value.positive{color:#0e7a5a}
+.print-view.pv-statement .pv-balance-box .pbb-value.negative{color:#c0392b}
+
+.print-view.pv-statement table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:.82rem;
+  margin-bottom:24px;
+}
+.print-view.pv-statement th{
+  text-align:left;
+  padding:8px 6px;
+  border-bottom:1.5px solid #000;
+  text-transform:uppercase;
+  font-size:.7rem;
+  letter-spacing:.05em;
+  font-weight:700;
+}
+.print-view.pv-statement td{
+  padding:9px 6px;
+  border-bottom:1px solid #e5e5e5;
+  vertical-align:top;
+}
+.print-view.pv-statement td.amt{
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  font-weight:600;
+  white-space:nowrap;
+}
+.print-view.pv-statement td.amt.positive{color:#0e7a5a}
+.print-view.pv-statement td.amt.negative{color:#c0392b}
+.print-view.pv-statement tfoot td{
+  border-top:1.5px solid #000;
+  border-bottom:none;
+  font-weight:700;
+  padding-top:12px;
+}
+.print-view.pv-statement .pv-footer{
+  text-align:center;
+  font-size:.7rem;
+  color:#888;
+  border-top:1px solid #ddd;
+  padding-top:14px;
+  margin-top:30px;
+}.print-view .pv-header{
   text-align:center;border-bottom:2px solid #000;
   padding-bottom:14px;margin-bottom:20px;
 }

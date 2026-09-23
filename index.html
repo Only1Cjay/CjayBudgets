@@ -69,19 +69,29 @@
         </div>
       </div>
     </div>
-       <div class="top-actions">
-      <button class="icon-btn" id="searchBtn" title="Search">
-        <i class="fas fa-search"></i>
-      </button>
-      <button class="icon-btn" id="budgetBtn" title="Monthly budget">
-        <i class="fas fa-file-lines"></i>
-      </button>
+    <div class="top-actions">
       <button class="icon-btn" id="themeBtn" title="Toggle theme">
         <i class="fas fa-moon"></i>
       </button>
-      <button class="icon-btn" id="settingsBtn" title="Settings">
-        <i class="fas fa-cog"></i>
-      </button>
+      <div class="menu-wrap">
+        <button class="icon-btn" id="menuBtn" title="Menu" aria-expanded="false">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="menu-dropdown hidden" id="menuDropdown">
+          <button class="menu-item" id="searchBtn">
+            <i class="fas fa-search"></i>
+            <span>Search</span>
+          </button>
+          <button class="menu-item" id="budgetBtn">
+            <i class="fas fa-file-lines"></i>
+            <span>Budget Plan</span>
+          </button>
+          <button class="menu-item" id="settingsBtn">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -249,10 +249,15 @@ function switchTab(tab){
     ? '<i class="fas fa-wallet"></i>'
     : '<i class="fas fa-piggy-bank"></i>';
 
-   // Show "Savings Goal" menu item only on Savings tab
+     // Show tab-specific menu items
   const goalBtn = document.getElementById('goalBtn');
   if(goalBtn){
     goalBtn.classList.toggle('hidden', tab !== 'savings');
+  }
+
+  const budgetBtn = document.getElementById('budgetBtn');
+  if(budgetBtn){
+    budgetBtn.classList.toggle('hidden', tab !== 'budget');
   }
 
   updateFab();
@@ -2450,18 +2455,27 @@ function bindEvents(){
     openGoalSettingsModal();
   };
 
-   // Spend card header collapse toggle (whole header is clickable)
-  document.addEventListener('click', (e) => {
-    const header = e.target.closest('#spendHeaderBtn');
-    if(!header) return;
+    // Spend card header collapse toggle (whole header is clickable)
+  function toggleSpendCard(){
     ui.spendCollapsed = !ui.spendCollapsed;
     try{
       localStorage.setItem('cjay_budgets_spend_collapsed', String(ui.spendCollapsed));
     }catch(err){}
-    // Update aria + rerender
-    header.setAttribute('aria-expanded', String(!ui.spendCollapsed));
+    const header = document.getElementById('spendHeaderBtn');
+    if(header){
+      header.setAttribute('aria-expanded', String(!ui.spendCollapsed));
+    }
     const period = entriesInPeriod();
     renderSpend(period);
+  }
+  document.addEventListener('click', (e) => {
+    if(e.target.closest('#spendHeaderBtn')) toggleSpendCard();
+  });
+  document.addEventListener('keydown', (e) => {
+    if((e.key === 'Enter' || e.key === ' ') && e.target.id === 'spendHeaderBtn'){
+      e.preventDefault();
+      toggleSpendCard();
+    }
   });
 
   // Budget card collapse toggle

@@ -44,7 +44,7 @@ let ui = {
   month: new Date().getMonth(),
   dayAnchor: new Date(),
   weekAnchor: new Date(),
-  visibleBudgetLimit: 8,
+  visibleBudgetLimit: 3,
   visibleSavingsLimit: 8,
   search: '',
   typeFilter: '',                // for budget: 'Income' | 'Expense'
@@ -52,9 +52,10 @@ let ui = {
   savingsTypeFilter: '',         // 'deposit' | 'withdrawal'
   viewOnly: false,
   editingId: null,
- spendView: 'donut',   // 👈 NEW — 'donut' or 'bars'
- budgetCollapsed: false
-
+  spendView: 'donut',
+  budgetCollapsed: false,
+  spendCollapsed: true,
+  menuOpen: false
 };
 
 let pendingUndo = null;   // { action, payload, timeout }
@@ -300,10 +301,21 @@ function renderBudget(){
 
 function renderSpend(period){
   const wrap = document.getElementById('spendContent');
+  const card = wrap.closest('.spend-card');
   const expenses = period.filter(e=>e.type==='Expense');
+
+  // Apply collapse state to the card
+  if(card){
+    card.classList.toggle('expanded', !ui.spendCollapsed);
+  }
 
   if(!expenses.length){
     wrap.innerHTML = '<div class="spend-empty">No expenses logged this period yet.</div>';
+    // Also update the compact summary to reflect empty state
+    const compact = card ? card.querySelector('.spend-compact-text') : null;
+    if(compact){
+      compact.innerHTML = 'No spending yet this period';
+    }
     return;
   }
 
@@ -312,8 +324,17 @@ function renderSpend(period){
     const k = e.category || 'Uncategorized';
     totals[k] = (totals[k]||0) + (Number(e.amount)||0);
   });
-  const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+   const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
   const total = sorted.reduce((s,[,v])=>s+v,0);
+
+  // Update compact summary (shown when card is collapsed)
+  if(card){
+    const compact = card.querySelector('.spend-compact-text');
+    if(compact){
+      const catCount = sorted.length;
+      compact.innerHTML = `<strong>${fmtNaira(total)}</strong> across ${catCount} categor${catCount===1?'y':'ies'}`;
+    }
+  }
 
   const COLORS = ['#2e7dd1','#0e7a5a','#e0a526','#d3453f','#8b5cf6',
                   '#06b6d4','#f97316','#ec4899','#84cc16','#6366f1'];
@@ -1997,11 +2018,68 @@ function bindEvents(){
     b.onclick = () => switchTab(b.dataset.tab);
   });
 
-  // Top bar
+  // Top bar — theme stays one-tap
   document.getElementById('themeBtn').onclick = toggleTheme;
-  document.getElementById('settingsBtn').onclick = openSettingsModal;
-  document.getElementById('searchBtn').onclick = openSearchModal;
-  document.getElementById('budgetBtn').onclick = openBudgetSettingsModal;
+
+  // Hamburger menu
+  const menuBtn = document.getElementById('menuBtn');
+  const menuDropdown = document.getElementById('menuDropdown');
+
+  function openMenu(){
+    ui.menuOpen = true;
+    menuDropdown.classList.remove('hidden');
+    menuBtn.setAttribute('aria-expanded', 'true');
+  }
+  function closeMenu(){
+    ui.menuOpen = false;
+    menuDropdown.classList.add('hidden');
+    menuBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  menuBtn.onclick = (e) => {
+    e.stopPropagation();
+    ui.menuOpen ? closeMenu() : openMenu();
+  };
+
+  // Close menu when clicking anywhere else
+  document.addEventListener('click', (e) => {
+    if(!ui.menuOpen) return;
+    if(e.target.closest('.menu-wrap')) return;
+    closeMenu();
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && ui.menuOpen) closeMenu();
+  });
+
+  // Menu items — open their respective modals, then close the menu
+  document.getElementById('searchBtn').onclick = () => {
+    closeMenu();
+    openSearchModal();
+  };
+  document.getElementById('budgetBtn').onclick = () => {
+    closeMenu();
+    openBudgetSettingsModal();
+  };
+  document.getElementById('settingsBtn').onclick = () => {
+    closeMenu();
+    openSettingsModal();
+  };
+
+  // Spend card collapse toggle
+  document.addEventListener('click', (e) => {
+    const seeMore = e.target.closest('.spend-see-more');
+    if(!seeMore) return;
+    e.stopPropagation();
+    ui.spendCollapsed = !ui.spendCollapsed;
+    try{
+      localStorage.setItem('cjay_budgets_spend_collapsed', String(ui.spendCollapsed));
+    }catch(err){}
+    // Rerender spend card only
+    const period = entriesInPeriod();
+    renderSpend(period);
+  });
 
   // Budget card collapse toggle
   document.getElementById('budgetCollapseBtn').onclick = () => {
@@ -2148,7 +2226,12 @@ function boot(){
   if(savedCollapsed === 'true'){
     ui.budgetCollapsed = true;
   }
-   
+
+  // Restore spend card collapse state (defaults to collapsed if never set)
+  const savedSpendCollapsed = localStorage.getItem('cjay_budgets_spend_collapsed');
+  if(savedSpendCollapsed === 'false'){
+    ui.spendCollapsed = false;
+  }
   createOfflineBanner();
   updateOnlineStatus();
   window.addEventListener('online', updateOnlineStatus);

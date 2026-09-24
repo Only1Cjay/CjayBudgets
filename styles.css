@@ -439,109 +439,96 @@ body[data-tab="savings"] .brand-logo{
 }
 
 /* ============================================================
-   SPENDING BY CATEGORY (donut + bars)
+   WEEKLY SPENDING SNAPSHOT
    ============================================================ */
-.spend-card{padding:20px}
+.weekly-snapshot-card{
+  padding:18px 20px;
+  cursor:pointer;
+  transition:transform .15s ease, box-shadow .15s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.weekly-snapshot-card:hover{
+  box-shadow:var(--shadow);
+  transform:translateY(-1px);
+}
+.weekly-snapshot-card:active{
+  transform:scale(.99);
+}
 
-/* Collapsible header for the spend card */
-.spend-card-header{
+.ws-label{
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:0;
-  cursor:pointer;
-  user-select:none;
-  -webkit-tap-highlight-color:transparent;
-  padding:2px 4px;
-  border-radius:10px;
-  transition:background .15s;
-  outline:none;
-}
-.spend-card-header:focus,
-.spend-card-header:focus-visible{
-  outline:none;
-}
-.spend-card-header:hover{
-  background:var(--card-2);
-}
-.spend-card-header:active{
-  background:var(--card-2);
-}
-.spend-card-header h3{
-  margin:0;
-  font-size:.78rem;
+  gap:8px;
+  font-size:.72rem;
   font-weight:700;
   color:var(--text-soft);
   text-transform:uppercase;
   letter-spacing:.06em;
-  display:flex;
-  align-items:center;
-  gap:8px;
+  margin-bottom:12px;
 }
-.spend-card-header h3 .spend-chevron{
-  font-size:.7rem;
-  color:var(--muted);
-  transition:transform .25s ease;
-}
-.spend-card.expanded .spend-card-header h3 .spend-chevron{
-  transform:rotate(90deg);
+.ws-label i{
+  color:var(--accent);
+  font-size:.85rem;
 }
 
-/* Compact summary (shown when collapsed) */
-.spend-compact{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-top:12px;
-  padding-top:12px;
-  border-top:1px solid var(--line);
+.ws-total{
+  font-family:'Sora',sans-serif;
+  font-weight:800;
+  font-size:1.35rem;
+  color:var(--text);
+  letter-spacing:-.02em;
+  margin-bottom:2px;
 }
-.spend-compact-text{
-  font-size:.8rem;
+.ws-total small{
+  font-family:'Inter',sans-serif;
+  font-weight:500;
+  font-size:.78rem;
+  color:var(--muted);
+  margin-left:6px;
+  letter-spacing:0;
+}
+
+.ws-highest{
+  font-size:.78rem;
   color:var(--muted);
   font-weight:500;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
+  margin-bottom:12px;
 }
-.spend-compact-text strong{
-  color:var(--text);
+.ws-highest strong{
+  color:var(--text-soft);
   font-weight:700;
-}
-.spend-see-more{
-  background:none;
-  border:none;
-  color:var(--accent);
-  font-size:.72rem;
-  font-weight:700;
-  text-transform:uppercase;
-  letter-spacing:.04em;
-  padding:4px 8px;
-  border-radius:8px;
-  cursor:pointer;
-  flex-shrink:0;
-  font-family:inherit;
-  transition:.15s;
-}
-.spend-see-more:hover{
-  background:var(--accent-soft);
 }
 
-/* Hide body content when collapsed */
-.spend-card-body{
-  margin-top:16px;
-  display:block;
+.ws-compare-bar{
+  height:5px;
+  border-radius:999px;
+  background:var(--card-2);
+  overflow:hidden;
+  margin-bottom:8px;
 }
-.spend-card:not(.expanded) .spend-card-body{
-  display:none;
+.ws-compare-fill{
+  height:100%;
+  border-radius:999px;
+  transition:width .4s ease;
 }
-.spend-card:not(.expanded) .spend-compact{
-  display:flex;
+.ws-compare-fill.up{background:var(--red)}
+.ws-compare-fill.down{background:var(--green)}
+
+.ws-compare-text{
+  font-size:.72rem;
+  color:var(--muted);
+  font-weight:600;
 }
-.spend-card.expanded .spend-compact{
-  display:none;
+.ws-compare-text.up strong{color:var(--red)}
+.ws-compare-text.down strong{color:var(--green)}
+
+/* Empty state */
+.ws-empty{
+  font-size:.82rem;
+  color:var(--muted);
+  line-height:1.5;
+  padding:4px 0;
+}
 }.spend-grid{
   display:grid;grid-template-columns:140px 1fr;gap:18px;align-items:center;
 }

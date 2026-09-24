@@ -7,12 +7,9 @@
 /* ============================================================
    CONSTANTS
    ============================================================ */
-const STORAGE_KEY   = 'cjay_budgets_v1';
-const DRIVE_FOLDER  = 'CjayBudgets';
-const DRIVE_BUDGET  = 'budget/cjay-budget.json';
-const DRIVE_SAVINGS = 'savings/cjay-savings.json';
-const CLIENT_KEY    = 'cjay_gdrive_client_id';
-const LASTSYNC_KEY  = 'cjay_budgets_lastsync';
+const STORAGE_KEY  = 'cjay_budgets_v1';
+const DRIVE_FOLDER = 'CjayBudgets';
+const CLIENT_KEY   = 'cjay_gdrive_client_id';
 
 const MONTHS = ['January','February','March','April','May','June',
                 'July','August','September','October','November','December'];
@@ -55,15 +52,12 @@ let ui = {
   typeFilter: '',                // for budget: 'Income' | 'Expense'
   categoryFilter: '',
   savingsTypeFilter: '',         // 'deposit' | 'withdrawal'
-  viewOnly: false,
+    viewOnly: false,
   editingId: null,
-  spendView: 'donut',
   budgetCollapsed: false,
-  spendCollapsed: true,
   menuOpen: false
 };
 
-let pendingUndo = null;   // { action, payload, timeout }
 let tokenClient = null;
 let accessToken = null;
 let gapiReady = false;
@@ -344,71 +338,95 @@ function renderBudget(){
   // Net card color flips to red if negative
   document.getElementById('sumNetCard').classList.toggle('negative', net < 0);
 
-    renderSpend(period);
+    renderWeeklySnapshot();
   renderEntryList();
   renderBudgetTracker();
 }
 
-function renderSpend(period){
-  const wrap = document.getElementById('spendContent');
-  const card = wrap.closest('.spend-card');
-  const expenses = period.filter(e=>e.type==='Expense');
+/* ============================================================
+   WEEKLY SPENDING SNAPSHOT
+   ============================================================ */
+function renderWeeklySnapshot(){
+  const card = document.getElementById('weeklySnapshotCard');
+  const content = document.getElementById('weeklySnapshotContent');
+  if(!card || !content) return;
 
-    // Apply collapse state to the card
-  if(card){
-    card.classList.toggle('expanded', !ui.spendCollapsed);
-    const header = card.querySelector('#spendHeaderBtn');
-    if(header){
-      header.setAttribute('aria-expanded', String(!ui.spendCollapsed));
-    }
+  // Helper — get expenses for a date range
+  const expensesInRange = (from, to) => state.entries.filter(e => {
+    if(e.type !== 'Expense') return false;
+    const d = parseDate(e.date);
+    return d && d >= from && d <= to;
+  });
+
+  // Current week (Mon–Sun)
+  const now = new Date();
+  const dayOfWeek = now.getDay();              // 0=Sun, 1=Mon, ...
+  const daysFromMon = (dayOfWeek + 6) % 7;     // 0 if Mon, 6 if Sun
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysFromMon);
+  const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6); weekEnd.setHours(23, 59, 59);
+
+  // Last week
+  const lastWeekStart = new Date(weekStart); lastWeekStart.setDate(weekStart.getDate() - 7);
+  const lastWeekEnd = new Date(lastWeekStart); lastWeekEnd.setDate(lastWeekStart.getDate() + 6); lastWeekEnd.setHours(23, 59, 59);
+
+  const thisWeekExpenses = expensesInRange(weekStart, weekEnd);
+  const lastWeekExpenses = expensesInRange(lastWeekStart, lastWeekEnd);
+
+  const thisWeekTotal = thisWeekExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const lastWeekTotal = lastWeekExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+  // Hide entirely if nothing to show
+  if(thisWeekTotal === 0 && lastWeekTotal === 0){
+    card.classList.add('hidden');
+    return;
   }
+  card.classList.remove('hidden');
 
-   if(!expenses.length){
-    wrap.innerHTML = '<div class="spend-empty">No expenses logged this period yet.</div>';
-    const compact = card ? card.querySelector('.spend-compact-text') : null;
-    if(compact){
-      compact.textContent = 'No spending yet';
-    }
+  // Empty-ish state: no spending this week yet
+  if(thisWeekTotal === 0){
+    content.innerHTML = `
+      <div class="ws-empty">No spending yet this week.</div>
+      ${lastWeekTotal > 0 ? `<div class="ws-highest" style="margin-top:8px;margin-bottom:0">Last week: <strong>${fmtNaira(lastWeekTotal)}</strong></div>` : ''}
+    `;
     return;
   }
 
+  // Category info
   const totals = {};
-  expenses.forEach(e => {
-    const k = e.category || 'Uncategorized';
-    totals[k] = (totals[k]||0) + (Number(e.amount)||0);
+  thisWeekExpenses.forEach(e => {
+    const k = (e.category || 'Uncategorized').trim();
+    totals[k] = (totals[k] || 0) + (Number(e.amount) || 0);
   });
-   const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
-  const total = sorted.reduce((s,[,v])=>s+v,0);
+  const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  const catCount = sorted.length;
+  const topCat = sorted[0];
 
-    // Update compact summary (shown when card is collapsed, next to title)
-  if(card){
-    const compact = card.querySelector('.spend-compact-text');
-    if(compact){
-      const catCount = sorted.length;
-      compact.innerHTML = `<strong>${fmtNaira(total)}</strong> · ${catCount} categor${catCount===1?'y':'ies'}`;
-    }
+  // Comparison
+  let compareHtml = '';
+  if(lastWeekTotal > 0){
+    const diff = thisWeekTotal - lastWeekTotal;
+    const pct = Math.round((Math.abs(diff) / lastWeekTotal) * 100);
+    const barWidth = Math.min((thisWeekTotal / lastWeekTotal) * 100, 100);
+    const isUp = diff > 0;
+    const cls = isUp ? 'up' : 'down';
+    const arrow = isUp ? '↑' : '↓';
+    const word = isUp ? 'higher' : 'lower';
+
+    compareHtml = `
+      <div class="ws-compare-bar">
+        <div class="ws-compare-fill ${cls}" style="width:${barWidth}%"></div>
+      </div>
+      <div class="ws-compare-text ${cls}">
+        ${arrow} <strong>${pct}%</strong> ${word} than last week
+      </div>
+    `;
   }
-  const COLORS = ['#2e7dd1','#0e7a5a','#e0a526','#d3453f','#8b5cf6',
-                  '#06b6d4','#f97316','#ec4899','#84cc16','#6366f1'];
 
-   // Bars-only view (donut removed)
-  const maxAmt = sorted[0][1];
-  const rows = sorted.map(([cat, amt], i) => {
-    const pctWidth = (amt / maxAmt) * 100;
-    const pctOfTotal = Math.round((amt / total) * 100);
-    return `
-      <div class="bar-row">
-        <div class="bar-label">
-          <span class="bar-name">${esc(cat)} · ${pctOfTotal}%</span>
-          <span class="bar-amt num">${fmtNaira(amt)}</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${pctWidth}%;background:${COLORS[i % COLORS.length]}"></div>
-        </div>
-      </div>`;
-  }).join('');
-
-  wrap.innerHTML = `<div class="spend-bars-view">${rows}</div>`;
+  content.innerHTML = `
+    <div class="ws-total">${fmtNaira(thisWeekTotal)}<small>${catCount} categor${catCount===1?'y':'ies'}</small></div>
+    <div class="ws-highest">Highest: <strong>${esc(topCat[0])} ${fmtNaira(topCat[1])}</strong></div>
+    ${compareHtml}
+  `;
 }
 /* ============================================================
    MONTHLY BUDGET TRACKER
@@ -1853,19 +1871,39 @@ function openBudgetSettingsModal(){
 /* ============================================================
    SUMMARY DETAIL MODAL (Income / Expenses drill-down)
    ============================================================ */
-function openSummaryDetailModal(type){
+function openSummaryDetailModal(type, scope){
   // type = 'Income' or 'Expense'
+  // scope = 'period' (default) or 'week'
   const isIncome = type === 'Income';
 
-  // Entries in the current period, filtered by type
-  const period = entriesInPeriod();
-  const items = period
+  let sourceEntries;
+  let periodLabel;
+
+  if(scope === 'week'){
+    // This week (Mon–Sun)
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const daysFromMon = (dayOfWeek + 6) % 7;
+    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysFromMon);
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6); weekEnd.setHours(23, 59, 59);
+
+    sourceEntries = state.entries.filter(e => {
+      const d = parseDate(e.date);
+      return d && d >= weekStart && d <= weekEnd;
+    });
+
+    const startLabel = weekStart.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+    const endLabel = weekEnd.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+    periodLabel = `This Week · ${startLabel} – ${endLabel}`;
+  } else {
+    sourceEntries = entriesInPeriod();
+    periodLabel = periodLabelText();
+  }
+
+  const items = sourceEntries
     .filter(e => e.type === type)
     .sort((a,b) => (b.date||'').localeCompare(a.date||''));
   const total = items.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-
-  // Period label
-  const periodLabel = periodLabelText();
 
   // Render each entry row (reuses the main list styles)
   const rowsHtml = items.length
@@ -2533,6 +2571,11 @@ function bindEvents(){
   document.getElementById('sumIncomeCard').onclick = () => openSummaryDetailModal('Income');
   document.getElementById('sumExpenseCard').onclick = () => openSummaryDetailModal('Expense');
 
+  // Weekly snapshot → opens Expenses drill-down scoped to this week
+  document.getElementById('weeklySnapshotCard').onclick = () => {
+    openSummaryDetailModal('Expense', 'week');
+  };
+
   // Hamburger menu
   const menuBtn = document.getElementById('menuBtn');
   const menuDropdown = document.getElementById('menuDropdown');
@@ -2583,28 +2626,7 @@ function bindEvents(){
     openGoalSettingsModal();
   };
 
-    // Spend card header collapse toggle (whole header is clickable)
-  function toggleSpendCard(){
-    ui.spendCollapsed = !ui.spendCollapsed;
-    try{
-      localStorage.setItem('cjay_budgets_spend_collapsed', String(ui.spendCollapsed));
-    }catch(err){}
-    const header = document.getElementById('spendHeaderBtn');
-    if(header){
-      header.setAttribute('aria-expanded', String(!ui.spendCollapsed));
-    }
-    const period = entriesInPeriod();
-    renderSpend(period);
-  }
-  document.addEventListener('click', (e) => {
-    if(e.target.closest('#spendHeaderBtn')) toggleSpendCard();
-  });
-  document.addEventListener('keydown', (e) => {
-    if((e.key === 'Enter' || e.key === ' ') && e.target.id === 'spendHeaderBtn'){
-      e.preventDefault();
-      toggleSpendCard();
-    }
-  });
+ // (Spend card collapse logic removed — the spend card no longer exists)
 
   // Budget card collapse toggle
   document.getElementById('budgetCollapseBtn').onclick = () => {
@@ -2614,8 +2636,6 @@ function bindEvents(){
     }catch(e){}
     renderBudgetTracker();
   };
-  //document.getElementById('budgetEditBtn').onclick = openSettingsModal;
-
   // Period nav
   document.getElementById('prevPeriod').onclick = () => {
     ui.visibleBudgetLimit = 8;
@@ -2740,22 +2760,10 @@ if('serviceWorker' in navigator){
    BOOT
    ============================================================ */
 function boot(){
-  // Restore spend chart preference (donut vs bars)
-  const savedSpendView = localStorage.getItem('cjay_budgets_spend_view');
-  if(savedSpendView === 'donut' || savedSpendView === 'bars'){
-    ui.spendView = savedSpendView;
-  }
-
   // Restore budget card collapse state
   const savedCollapsed = localStorage.getItem('cjay_budgets_budget_collapsed');
   if(savedCollapsed === 'true'){
     ui.budgetCollapsed = true;
-  }
-
-  // Restore spend card collapse state (defaults to collapsed if never set)
-  const savedSpendCollapsed = localStorage.getItem('cjay_budgets_spend_collapsed');
-  if(savedSpendCollapsed === 'false'){
-    ui.spendCollapsed = false;
   }
   createOfflineBanner();
   updateOnlineStatus();

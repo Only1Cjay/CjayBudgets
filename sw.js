@@ -5,10 +5,10 @@
    to index.html, styles.css, or app.js.
    Otherwise users may keep seeing the cached version.
 
-   Current version: v1.0.0
+   Current version: v1.1.4
    ============================================================ */
 
-const CACHE_VERSION = 'v1.1.3';
+const CACHE_VERSION = 'v1.1.4';
 const CACHE_NAME = 'cjaybudgets-' + CACHE_VERSION;
 
 // App files — stale-while-revalidate
@@ -138,16 +138,6 @@ async function networkWithCacheFallback(req){
   }
 }
 
-/* ============================================================
-   UPDATE NOTIFICATION
-   ============================================================ */
-async function notifyUpdate(version){
-  const clients = await self.clients.matchAll({type:'window'});
-  clients.forEach(c => c.postMessage({
-    type: 'UPDATE_AVAILABLE',
-    version: version
-  }));
-}
 
 /* ============================================================
    MESSAGE HANDLING — from page

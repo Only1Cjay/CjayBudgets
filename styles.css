@@ -1,8 +1,8 @@
 /* ============================================================
    CjayBudgets — styles.css
    Two-tab personal finance tracker (Budget + Savings)
-   Palettes: Blue+Gold (Budget) · Emerald+Cream (Savings) + Plum easter egg
-   ============================================================ */
+   Palettes: Blue+Gold (Budget) · Terracotta+Cream (Savings) + Teal+Peach easter egg
+============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -529,7 +529,7 @@ body[data-tab="savings"] .brand-logo{
   line-height:1.5;
   padding:4px 0;
 }
-}.spend-grid{
+.spend-grid{
   display:grid;grid-template-columns:140px 1fr;gap:18px;align-items:center;
 }
 .donut-wrap{position:relative;width:140px;height:140px;flex-shrink:0}
